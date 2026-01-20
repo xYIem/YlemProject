@@ -1,0 +1,203 @@
+/**
+ * Ylem Auth CSS
+ * Styles for account overlays, PIN pad
+ */
+
+.auth-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 20px;
+}
+
+.auth-overlay.hidden {
+    display: none;
+}
+
+.auth-content {
+    background: var(--bg-primary);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    max-width: 360px;
+    width: 100%;
+    text-align: center;
+    border: 1px solid var(--bg-elevated);
+}
+
+.auth-title {
+    font-size: 1.5rem;
+    font-weight: 900;
+    margin-bottom: 8px;
+    color: var(--accent);
+}
+
+.auth-subtitle {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 24px;
+}
+
+.auth-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.auth-btn {
+    padding: 16px 24px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    border-radius: var(--radius-md);
+    border: 2px solid;
+    cursor: pointer;
+    transition: transform 0.1s;
+    font-family: var(--font-main);
+}
+
+.auth-btn:active {
+    transform: scale(0.98);
+}
+
+.auth-btn.create {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+}
+
+.auth-btn.login {
+    background: transparent;
+    border-color: var(--bg-elevated);
+    color: var(--text-primary);
+}
+
+.auth-btn.login:hover {
+    border-color: var(--accent);
+}
+
+.auth-input {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-align: center;
+    background: var(--bg-secondary);
+    border: 2px solid var(--bg-elevated);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    margin-bottom: 12px;
+    font-family: var(--font-main);
+}
+
+.auth-input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.auth-random {
+    display: inline-block;
+    font-size: 0.9rem;
+    color: #fbbf24;
+    margin-bottom: 16px;
+    cursor: pointer;
+    padding: 8px 16px;
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(251, 191, 36, 0.05));
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    animation: sparkleGlow 1.5s ease-in-out infinite;
+}
+
+.auth-random:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+}
+
+@keyframes sparkleGlow {
+    0%, 100% { box-shadow: 0 0 5px rgba(251, 191, 36, 0.3); }
+    50% { box-shadow: 0 0 15px rgba(251, 191, 36, 0.6), 0 0 25px rgba(251, 191, 36, 0.4); }
+}
+
+.auth-pin-label {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+}
+
+.auth-pin-display {
+    font-family: var(--font-mono);
+    font-size: 1.8rem;
+    letter-spacing: 8px;
+    padding: 12px;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    margin-bottom: 12px;
+    min-height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.auth-pin-pad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    max-width: 240px;
+    margin: 0 auto 16px;
+}
+
+.pin-btn {
+    padding: 16px;
+    font-size: 1.4rem;
+    font-weight: 700;
+    background: var(--bg-secondary);
+    border: 2px solid var(--bg-elevated);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    cursor: pointer;
+    font-family: var(--font-main);
+}
+
+.pin-btn:active {
+    background: var(--bg-elevated);
+    transform: scale(0.92);
+}
+
+.pin-btn.confirm {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+}
+
+.pin-btn.delete {
+    color: var(--danger);
+}
+
+.auth-error {
+    color: var(--danger);
+    font-size: 0.85rem;
+    margin-bottom: 12px;
+}
+
+.auth-error.hidden {
+    display: none;
+}
+
+.auth-back-btn {
+    padding: 12px 24px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--bg-elevated);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: var(--font-main);
+    margin-top: 8px;
+}
+
+.auth-back-btn:hover {
+    border-color: var(--accent);
+}

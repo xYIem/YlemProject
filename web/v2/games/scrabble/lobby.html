@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Scrabble Lobby</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800;900&family=JetBrains+Mono:wght@500;700&display=swap"
+        rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-deep: #0f0f13;
+            --bg-primary: #16161d;
+            --bg-secondary: #1e1e27;
+            --bg-elevated: #282833;
+            --accent: #f97316;
+            --accent-light: #fb923c;
+            --accent-dark: #ea580c;
+            --accent-glow: rgba(249, 115, 22, 0.3);
+            --success: #22c55e;
+            --danger: #ef4444;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --font-main: 'Nunito', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html,
+        body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Header --- */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--bg-elevated);
+        }
+
+        .header-title {
+            font-size: 1.4rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .back-btn {
+            padding: 8px 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--bg-elevated);
+            border-radius: var(--radius-md);
+            color: var(--text-secondary);
+            font-family: var(--font-main);
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .back-btn:hover {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+        }
+
+        /* --- Main Content --- */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+            gap: 16px;
+            overflow-y: auto;
+        }
+
+        /* --- Action Buttons --- */
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+        }
+
+        .action-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 20px 16px;
+            background: linear-gradient(145deg, var(--bg-secondary), var(--bg-primary));
+            border: 1px solid var(--bg-elevated);
+            border-radius: var(--radius-lg);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            font-size: 0.95rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.25s;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-3px);
+            border-color: var(--accent);
+            box-shadow: 0 8px 24px var(--accent-glow);
+        }
+
+        .action-btn .icon {
+            font-size: 2rem;
+        }
+
+        .action-btn.primary {
+            background: linear-gradient(145deg, var(--accent), var(--accent-dark));
+            border-color: var(--accent-dark);
+        }
+
+        .action-btn.primary:hover {
+            box-shadow: 0 8px 32px var(--accent-glow);
+        }
+
+        /* --- Games List --- */
+        .section-title {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        .games-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .game-card {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            background: var(--bg-primary);
+            border: 1px solid var(--bg-elevated);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .game-card:hover {
+            background: var(--bg-secondary);
+            border-color: var(--accent);
+        }
+
+        .game-card.your-turn {
+            border-left: 3px solid var(--success);
+        }
+
+        .game-card.waiting {
+            border-left: 3px solid var(--text-muted);
+        }
+
+        .game-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--bg-elevated);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .game-info {
+            flex: 1;
+        }
+
+        .game-opponent {
+            font-weight: 800;
+            font-size: 1rem;
+        }
+
+        .game-status {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .game-status.your-turn {
+            color: var(--success);
+            font-weight: 700;
+        }
+
+        .game-score {
+            text-align: right;
+        }
+
+        .game-score-value {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .game-score-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state .icon {
+            font-size: 3rem;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+
+        /* --- Connection Status --- */
+        .connection-status {
+            position: fixed;
+            bottom: 12px;
+            right: 12px;
+            padding: 6px 12px;
+            background: var(--bg-primary);
+            border: 1px solid var(--bg-elevated);
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .connection-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-muted);
+        }
+
+        .connection-dot.connected {
+            background: var(--success);
+        }
+
+        /* --- Tabs --- */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            background: var(--bg-primary);
+            padding: 4px;
+            border-radius: var(--radius-md);
+            margin-bottom: 8px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 10px;
+            background: transparent;
+            border: none;
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-family: var(--font-main);
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .tab:hover {
+            color: var(--text-primary);
+        }
+
+        .tab.active {
+            background: var(--bg-elevated);
+            color: var(--accent);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <header class="header">
+        <button class="back-btn" onclick="window.location.href='../../games.html'">← Back</button>
+        <h1 class="header-title">🎯 Scrabble</h1>
+        <div style="width:60px"></div>
+    </header>
+
+    <main class="main">
+        <!-- Action Buttons -->
+        <div class="action-grid">
+            <button class="action-btn primary" onclick="startNPCGame()">
+                <span class="icon">🤖</span>
+                Play vs NPC
+            </button>
+            <button class="action-btn" onclick="showMultiplayer()">
+                <span class="icon">👥</span>
+                Multiplayer
+            </button>
+        </div>
+
+        <!-- Tabs for Active Games -->
+        <div class="tabs">
+            <button class="tab active" data-tab="all">All Games</button>
+            <button class="tab" data-tab="npc">vs NPC</button>
+            <button class="tab" data-tab="human">vs Human</button>
+        </div>
+
+        <!-- All Games Tab -->
+        <div class="tab-content active" id="tab-all">
+            <div class="games-list" id="allGamesList">
+                <div class="empty-state">
+                    <div class="icon">🎲</div>
+                    <p>No active games yet</p>
+                    <p style="font-size: 0.8rem; margin-top: 4px;">Start a new game above!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- NPC Games Tab -->
+        <div class="tab-content" id="tab-npc">
+            <div class="games-list" id="npcGamesList">
+                <div class="empty-state">
+                    <div class="icon">🤖</div>
+                    <p>No NPC games</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Human Games Tab -->
+        <div class="tab-content" id="tab-human">
+            <div class="games-list" id="humanGamesList">
+                <div class="empty-state">
+                    <div class="icon">👥</div>
+                    <p>No multiplayer games</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="connection-status">
+        <span class="connection-dot" id="connectionDot"></span>
+        <span id="connectionText">Connecting...</span>
+    </div>
+
+    <script src="../../js/config.js"></script>
+    <script>
+        // ============================================
+        // State
+        // ============================================
+        let ws = null;
+        let playerName = localStorage.getItem('scrabble_player') || null;
+        let myGames = [];
+
+        // ============================================
+        // WebSocket
+        // ============================================
+        function connectWebSocket() {
+            const wsUrl = window.GAME_CONFIG?.WS_URL || 'wss://' + window.location.host + '/ws/';
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                document.getElementById('connectionDot').classList.add('connected');
+                document.getElementById('connectionText').textContent = 'Connected';
+
+                // Request game list
+                if (playerName) {
+                    ws.send(JSON.stringify({
+                        type: 'scrabble_get_games',
+                        playerName: playerName
+                    }));
+                }
+            };
+
+            ws.onclose = () => {
+                document.getElementById('connectionDot').classList.remove('connected');
+                document.getElementById('connectionText').textContent = 'Disconnected';
+                setTimeout(connectWebSocket, 3000);
+            };
+
+            ws.onerror = () => {
+                document.getElementById('connectionText').textContent = 'Connection Error';
+            };
+
+            ws.onmessage = (event) => {
+                const msg = JSON.parse(event.data);
+                handleMessage(msg);
+            };
+        }
+
+        function handleMessage(msg) {
+            switch (msg.type) {
+                case 'scrabble_games_list':
+                    myGames = msg.games || [];
+                    renderGames();
+                    break;
+
+                case 'scrabble_game_created':
+                    // Navigate to game
+                    window.location.href = `scrabble.html?gameId=${msg.gameId}`;
+                    break;
+
+                case 'welcome':
+                    // Use assigned name if we don't have one
+                    if (!playerName) {
+                        playerName = msg.name;
+                        localStorage.setItem('scrabble_player', playerName);
+                    }
+                    break;
+            }
+        }
+
+        // ============================================
+        // Game Actions
+        // ============================================
+        function startNPCGame() {
+            if (!playerName) {
+                alert('Please log in first');
+                return;
+            }
+
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'scrabble_create_game',
+                    playerName: playerName,
+                    opponent: 'NPC',
+                    isNPC: true
+                }));
+            }
+        }
+
+        function showMultiplayer() {
+            alert('Multiplayer invitations coming soon!');
+        }
+
+        function openGame(gameId) {
+            window.location.href = `scrabble.html?gameId=${gameId}`;
+        }
+
+        // ============================================
+        // Rendering
+        // ============================================
+        function renderGames() {
+            const allList = document.getElementById('allGamesList');
+            const npcList = document.getElementById('npcGamesList');
+            const humanList = document.getElementById('humanGamesList');
+
+            const npcGames = myGames.filter(g => g.isNPC);
+            const humanGames = myGames.filter(g => !g.isNPC);
+
+            allList.innerHTML = renderGamesList(myGames);
+            npcList.innerHTML = renderGamesList(npcGames);
+            humanList.innerHTML = renderGamesList(humanGames);
+        }
+
+        function renderGamesList(games) {
+            if (games.length === 0) {
+                return `
+                    <div class="empty-state">
+                        <div class="icon">🎲</div>
+                        <p>No games found</p>
+                    </div>
+                `;
+            }
+
+            return games.map(game => {
+                const isMyTurn = game.currentTurn === playerName;
+                const opponent = game.player1 === playerName ? game.player2 : game.player1;
+                const myScore = game.scores[playerName] || 0;
+                const oppScore = game.scores[opponent] || 0;
+
+                return `
+                    <div class="game-card ${isMyTurn ? 'your-turn' : 'waiting'}" onclick="openGame('${game.id}')">
+                        <div class="game-avatar">${game.isNPC ? '🤖' : '👤'}</div>
+                        <div class="game-info">
+                            <div class="game-opponent">${opponent}</div>
+                            <div class="game-status ${isMyTurn ? 'your-turn' : ''}">${isMyTurn ? '🟢 Your Turn' : '⏳ Waiting...'}</div>
+                        </div>
+                        <div class="game-score">
+                            <div class="game-score-value">${myScore} - ${oppScore}</div>
+                            <div class="game-score-label">Score</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ============================================
+        // Tabs
+        // ============================================
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+                tab.classList.add('active');
+                document.getElementById(`tab-${tab.dataset.tab}`).classList.add('active');
+            });
+        });
+
+        // ============================================
+        // Init
+        // ============================================
+        connectWebSocket();
+    </script>
+</body>
+
+</html>

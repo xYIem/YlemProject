@@ -1,0 +1,1508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Ylem TV Guide</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-dark: #0a0a0f;
+            --bg-card: rgba(255, 255, 255, 0.03);
+            --bg-card-hover: rgba(255, 255, 255, 0.08);
+            --bg-glass: rgba(255, 255, 255, 0.05);
+            --border-glass: rgba(255, 255, 255, 0.1);
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.6);
+            --text-muted: rgba(255, 255, 255, 0.35);
+            --accent: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.4);
+            --now-playing: #10b981;
+            --now-glow: rgba(16, 185, 129, 0.3);
+            --channel-width: 160px;
+            --row-height: 121px;
+            --time-header-height: 50px;
+            --hour-width: 420px;
+            --info-panel-height: 182px;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            position: relative;
+        }
+
+        /* Ambient background glow */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: 
+                radial-gradient(ellipse at 20% 20%, rgba(99, 102, 241, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(16, 185, 129, 0.06) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Header */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            background: linear-gradient(to bottom, rgba(10, 10, 15, 0.95), transparent);
+            z-index: 100;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #fff 0%, rgba(255,255,255,0.7) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header-nav {
+            display: flex;
+            gap: 12px;
+        }
+
+        .header-btn {
+            padding: 10px 20px;
+            background: var(--bg-glass);
+            border: 1px solid var(--border-glass);
+            border-radius: 10px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .header-btn:hover, .header-btn:focus {
+            background: var(--bg-card-hover);
+            color: var(--text-primary);
+            border-color: rgba(255,255,255,0.2);
+        }
+
+        /* Current time indicator */
+        .current-time {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            font-weight: 400;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Info Panel */
+        .info-panel {
+            position: fixed;
+            top: 70px;
+            left: 0;
+            right: 0;
+            height: var(--info-panel-height);
+            background: rgba(10, 10, 15, 0.9);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-glass);
+            display: flex;
+            z-index: 50;
+        }
+
+        .info-panel-label {
+            width: var(--channel-width);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-right: 1px solid var(--border-glass);
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        .info-panel-content {
+            flex: 1;
+            padding: 16px 24px;
+            display: flex;
+            gap: 24px;
+            overflow: hidden;
+        }
+
+        .info-panel-thumbnail {
+            width: 100px;
+            height: 100px;
+            max-height: calc(var(--info-panel-height) - 32px);
+            flex-shrink: 0;
+            border-radius: 8px;
+            overflow: hidden;
+            background: var(--bg-card);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .info-panel-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .info-panel-thumbnail-placeholder {
+            font-size: 2rem;
+            opacity: 0.3;
+        }
+
+        .info-panel-details {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            overflow: hidden;
+        }
+
+        .info-panel-title-row {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+            overflow: hidden;
+        }
+
+        .info-panel-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .info-panel-subtitle {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .info-panel-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        .info-panel-meta span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+
+        .info-panel-description {
+            flex: 1;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            overflow-y: auto;
+            padding-right: 8px;
+        }
+
+        .info-panel-description::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .info-panel-description::-webkit-scrollbar-thumb {
+            background: var(--border-glass);
+            border-radius: 2px;
+        }
+
+        .info-panel-description::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .info-panel-empty {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .info-panel-watch-btn {
+            padding: 10px 24px;
+            background: var(--now-playing);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            align-self: flex-start;
+        }
+
+        .info-panel-watch-btn:hover {
+            background: #0d9668;
+            transform: scale(1.02);
+        }
+
+        /* Guide container */
+        .guide-container {
+            position: fixed;
+            top: calc(70px + var(--info-panel-height));
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        /* Time header row */
+        .time-header {
+            position: absolute;
+            top: 0;
+            left: var(--channel-width);
+            right: 0;
+            height: var(--time-header-height);
+            overflow: hidden;
+            background: rgba(10, 10, 15, 0.8);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-glass);
+            z-index: 10;
+        }
+
+        .time-header-scroll {
+            position: relative;
+            height: 100%;
+            min-width: max-content;
+        }
+
+        .time-slot {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            padding-left: 15px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            border-left: 1px solid var(--border-glass);
+            box-sizing: border-box;
+        }
+
+        .time-slot.current-hour {
+            color: var(--now-playing);
+        }
+
+        /* Channel sidebar */
+        .channel-sidebar {
+            position: absolute;
+            top: var(--time-header-height);
+            left: 0;
+            width: var(--channel-width);
+            bottom: 0;
+            overflow: hidden;
+            background: rgba(10, 10, 15, 0.9);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--border-glass);
+            z-index: 10;
+        }
+
+        .channel-sidebar-scroll {
+            transition: transform 0.1s ease-out;
+        }
+
+        .channel-row {
+            height: var(--row-height);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 8px;
+            border-bottom: 1px solid var(--border-glass);
+            gap: 4px;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+
+        .channel-row:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .channel-row:active {
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .channel-logo {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            object-fit: contain;
+            background: var(--bg-card);
+            pointer-events: none;
+        }
+
+        .channel-number {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            pointer-events: none;
+        }
+
+        .channel-name {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-align: center;
+            line-height: 1.2;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+
+        /* Grid area */
+        .grid-area {
+            position: absolute;
+            top: var(--time-header-height);
+            left: var(--channel-width);
+            right: 0;
+            bottom: 0;
+            overflow: auto;
+            scrollbar-width: none;
+        }
+
+        .grid-area::-webkit-scrollbar {
+            display: none;
+        }
+
+        .grid-content {
+            position: relative;
+            min-width: max-content;
+        }
+
+        .channel-programmes {
+            position: relative;
+            height: var(--row-height);
+            border-bottom: 1px solid var(--border-glass);
+        }
+
+        /* Programme blocks */
+        .programme {
+            position: absolute;
+            top: 6px;
+            bottom: 6px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-glass);
+            border-radius: 10px;
+            padding: 12px 14px;
+            cursor: pointer;
+            overflow: hidden;
+            transition: all 0.15s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            gap: 4px;
+        }
+
+        .programme:hover {
+            background: var(--bg-card-hover);
+        }
+
+        .programme.focused {
+            background: var(--bg-card-hover);
+            border-color: var(--accent);
+            box-shadow: 0 0 20px var(--accent-glow);
+            transform: scale(1.02);
+            z-index: 5;
+        }
+
+        .programme.now-playing {
+            border-color: var(--now-playing);
+            background: rgba(16, 185, 129, 0.1);
+        }
+
+        .programme.now-playing:hover, .programme.now-playing.focused {
+            background: var(--bg-card-hover);
+            box-shadow: 0 0 25px var(--now-glow);
+            transform: scale(1.02);
+            z-index: 5;
+        }
+
+        .programme-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.3;
+        }
+
+        .programme-subtitle {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.3;
+        }
+
+        .programme-time {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: auto;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Now line */
+        .now-line {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: var(--now-playing);
+            box-shadow: 0 0 10px var(--now-glow);
+            z-index: 20;
+            pointer-events: none;
+        }
+
+        .now-line::before {
+            content: 'NOW';
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.65rem;
+            font-weight: 600;
+            color: var(--now-playing);
+            background: var(--bg-dark);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        /* Corner block (top-left) */
+        .corner-block {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: var(--channel-width);
+            height: var(--time-header-height);
+            background: rgba(10, 10, 15, 0.95);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--border-glass);
+            border-bottom: 1px solid var(--border-glass);
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .corner-block span {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        /* Loading state */
+        .loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            background: var(--bg-dark);
+            z-index: 1000;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid var(--border-glass);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        /* Error state */
+        .error {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            padding: 40px;
+            background: var(--bg-glass);
+            border: 1px solid var(--border-glass);
+            border-radius: 16px;
+            backdrop-filter: blur(20px);
+        }
+
+        .error h2 {
+            color: #ef4444;
+            margin-bottom: 10px;
+        }
+
+        .error p {
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+        }
+
+        .error button {
+            padding: 12px 24px;
+            background: var(--accent);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-family: inherit;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .error button:hover {
+            background: #4f46e5;
+        }
+
+        /* Focus indicator for TV navigation */
+        .programme:focus {
+            outline: none;
+        }
+
+        .programme.focused::after {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border: 2px solid var(--accent);
+            border-radius: 10px;
+            pointer-events: none;
+        }
+
+        /* Responsive - Tablet */
+        @media (max-width: 1024px) {
+            :root {
+                --channel-width: 130px;
+                --row-height: 100px;
+                --hour-width: 240px;
+                --info-panel-height: 156px;
+            }
+
+            .programme-title {
+                font-size: 0.95rem;
+            }
+
+            .programme-subtitle {
+                font-size: 0.8rem;
+            }
+
+            .info-panel-content {
+                padding: 12px 16px;
+                gap: 16px;
+            }
+
+            .info-panel-thumbnail {
+                width: 80px;
+            }
+
+            .info-panel-title {
+                font-size: 1.1rem;
+            }
+
+            .info-panel-description {
+                -webkit-line-clamp: 1;
+            }
+        }
+
+        /* Responsive - Mobile */
+        @media (max-width: 768px) {
+            :root {
+                --channel-width: 70px;
+                --row-height: 90px;
+                --hour-width: 200px;
+                --info-panel-height: 130px;
+            }
+
+            .header {
+                padding: 0 12px;
+                height: 56px;
+            }
+
+            .header h1 {
+                font-size: 1.1rem;
+            }
+
+            .header-nav {
+                gap: 6px;
+            }
+
+            .header-btn {
+                padding: 8px 12px;
+                font-size: 0.8rem;
+            }
+
+            .current-time {
+                display: none;
+            }
+
+            .info-panel {
+                top: 56px;
+            }
+
+            .info-panel-label {
+                font-size: 0.7rem;
+            }
+
+            .info-panel-content {
+                padding: 10px 12px;
+                gap: 10px;
+            }
+
+            .info-panel-thumbnail {
+                width: 50px;
+                min-width: 50px;
+                height: 50px;
+                min-height: 50px;
+                flex-shrink: 0;
+            }
+
+            .info-panel-title {
+                font-size: 0.95rem;
+            }
+
+            .info-panel-subtitle {
+                font-size: 0.8rem;
+            }
+
+            .info-panel-meta {
+                font-size: 0.7rem;
+                gap: 8px;
+                overflow-x: auto;
+                flex-wrap: nowrap;
+            }
+
+            .info-panel-description {
+                font-size: 0.75rem;
+                -webkit-line-clamp: 2;
+            }
+
+            .info-panel-watch-btn {
+                padding: 8px 16px;
+                font-size: 0.8rem;
+            }
+
+            .channel-logo {
+                width: 36px;
+                height: 36px;
+            }
+
+            .channel-name {
+                display: none;
+            }
+
+            .channel-number {
+                font-size: 0.8rem;
+            }
+
+            .programme {
+                padding: 8px 10px;
+                border-radius: 8px;
+            }
+
+            .programme-title {
+                font-size: 0.85rem;
+                font-weight: 600;
+            }
+
+            .programme-subtitle {
+                font-size: 0.75rem;
+            }
+
+            .programme-time {
+                font-size: 0.7rem;
+            }
+
+            .guide-container {
+                top: calc(56px + var(--info-panel-height));
+            }
+
+            .time-slot {
+                font-size: 0.75rem;
+                padding-left: 10px;
+            }
+        }
+
+        /* Responsive - Small Mobile */
+        @media (max-width: 480px) {
+            :root {
+                --channel-width: 55px;
+                --row-height: 80px;
+                --hour-width: 160px;
+                --info-panel-height: 104px;
+            }
+
+            .header h1 {
+                font-size: 1rem;
+            }
+
+            .header-btn {
+                padding: 6px 10px;
+                font-size: 0.75rem;
+            }
+
+            .info-panel-label {
+                font-size: 0.6rem;
+                width: var(--channel-width);
+            }
+
+            .info-panel-content {
+                padding: 8px 10px;
+                gap: 8px;
+            }
+
+            .info-panel-thumbnail {
+                width: 40px;
+                min-width: 40px;
+                height: 40px;
+                min-height: 40px;
+            }
+
+            .info-panel-title {
+                font-size: 0.85rem;
+            }
+
+            .info-panel-subtitle {
+                font-size: 0.75rem;
+            }
+
+            .info-panel-meta {
+                font-size: 0.65rem;
+            }
+
+            .info-panel-description {
+                font-size: 0.7rem;
+                -webkit-line-clamp: 1;
+            }
+
+            .info-panel-watch-btn {
+                padding: 6px 12px;
+                font-size: 0.75rem;
+            }
+
+            .channel-logo {
+                width: 30px;
+                height: 30px;
+            }
+
+            .channel-number {
+                font-size: 0.7rem;
+            }
+
+            .programme {
+                padding: 6px 8px;
+                gap: 2px;
+            }
+
+            .programme-title {
+                font-size: 0.8rem;
+            }
+
+            .programme-subtitle {
+                display: none;
+            }
+
+            .programme-time {
+                font-size: 0.65rem;
+            }
+
+            .corner-block span {
+                font-size: 0.65rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading" id="loading">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading TV Guide...</div>
+    </div>
+
+    <header class="header">
+        <h1>📺 Ylem TV Guide</h1>
+        <div class="current-time" id="currentTime"></div>
+        <nav class="header-nav">
+            <a href="/" class="header-btn">Home</a>
+            <a href="/games" class="header-btn">Games</a>
+        </nav>
+    </header>
+
+    <div class="info-panel" id="infoPanel">
+        <div class="info-panel-label">Show Info</div>
+        <div class="info-panel-content" id="infoPanelContent">
+            <div class="info-panel-empty">Select a show to view details</div>
+        </div>
+    </div>
+
+    <div class="guide-container" id="guideContainer" style="display: none;">
+        <div class="corner-block"><span>Channels</span></div>
+        
+        <div class="time-header">
+            <div class="time-header-scroll" id="timeHeaderScroll"></div>
+        </div>
+        
+        <div class="channel-sidebar">
+            <div class="channel-sidebar-scroll" id="channelSidebarScroll"></div>
+        </div>
+        
+        <div class="grid-area" id="gridArea">
+            <div class="grid-content" id="gridContent">
+                <div class="now-line" id="nowLine"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // EPG Guide - Ylem TV
+        // ============================================
+
+        const CONFIG = {
+            apiUrl: '/api/epg',
+            hourWidth: 420,        // pixels per hour (must match CSS --hour-width)
+            rowHeight: 121,        // pixels per channel row (must match CSS --row-height)
+            refreshInterval: 15000,  // refresh current time every 15 seconds
+            epgRefreshInterval: 300000 // refresh EPG data every 5 minutes
+        };
+
+        let epgData = null;
+        let gridStartTime = null;
+        let focusedElement = null;
+        let programmeElements = [];
+        let lastEpgRefresh = null;
+
+        // ============================================
+        // Data Fetching
+        // ============================================
+
+        async function fetchEPG() {
+            try {
+                const response = await fetch(CONFIG.apiUrl);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                return await response.json();
+            } catch (error) {
+                console.error('Failed to fetch EPG:', error);
+                throw error;
+            }
+        }
+
+        // ============================================
+        // Time Utilities
+        // ============================================
+
+        function formatTime(date) {
+            return date.toLocaleTimeString('en-US', { 
+                hour: 'numeric', 
+                minute: '2-digit',
+                hour12: true 
+            });
+        }
+
+        function formatHour(date) {
+            return date.toLocaleTimeString('en-US', { 
+                hour: 'numeric',
+                hour12: true 
+            });
+        }
+
+        function timeToPixels(timestamp) {
+            const msFromStart = timestamp - gridStartTime;
+            const hours = msFromStart / (1000 * 60 * 60);
+            return hours * CONFIG.hourWidth;
+        }
+
+        function updateCurrentTime() {
+            const now = new Date();
+            const nowTimestamp = now.getTime();
+            document.getElementById('currentTime').textContent = formatTime(now);
+            
+            // Update now line position
+            const nowLine = document.getElementById('nowLine');
+            if (nowLine && gridStartTime) {
+                const position = timeToPixels(nowTimestamp);
+                nowLine.style.left = `${position}px`;
+            }
+
+            // Update current hour highlighting based on timestamp
+            const currentHourStart = Math.floor(nowTimestamp / 3600000) * 3600000;
+            document.querySelectorAll('.time-slot').forEach(slot => {
+                const slotTs = parseInt(slot.dataset.timestamp);
+                slot.classList.toggle('current-hour', slotTs === currentHourStart);
+            });
+
+            // Update now-playing status on all programme blocks
+            updateNowPlayingStatus(nowTimestamp);
+        }
+
+        function updateNowPlayingStatus(nowTimestamp) {
+            document.querySelectorAll('.programme').forEach(block => {
+                const progData = block._programmeData;
+                if (progData) {
+                    const isNowPlaying = progData.startTimestamp <= nowTimestamp && progData.stopTimestamp > nowTimestamp;
+                    block.classList.toggle('now-playing', isNowPlaying);
+                    progData.isNowPlaying = isNowPlaying;
+                }
+            });
+        }
+
+        async function refreshEPGData() {
+            try {
+                console.log('Refreshing EPG data...');
+                const newData = await fetchEPG();
+                
+                // Check if time window has shifted significantly (more than 1 hour)
+                const oldStart = gridStartTime;
+                const newStart = newData.timeWindow.startTimestamp;
+                
+                if (Math.abs(newStart - oldStart) > 3600000) {
+                    // Time window shifted, need full re-render
+                    console.log('Time window shifted, re-rendering...');
+                    epgData = newData;
+                    gridStartTime = newData.timeWindow.startTimestamp;
+                    
+                    renderTimeHeader(newData.timeWindow.start, newData.timeWindow.end);
+                    renderChannelSidebar(newData.channels);
+                    renderProgrammeGrid(newData.channels, newData.programmes);
+                    
+                    // Re-scroll to now
+                    setTimeout(scrollToNow, 100);
+                } else {
+                    // Just update the data, UI is still valid
+                    epgData = newData;
+                }
+                
+                lastEpgRefresh = Date.now();
+                console.log('EPG data refreshed');
+            } catch (error) {
+                console.error('Failed to refresh EPG:', error);
+            }
+        }
+
+        // ============================================
+        // Rendering
+        // ============================================
+
+        function renderTimeHeader(startTime, endTime) {
+            const container = document.getElementById('timeHeaderScroll');
+            container.innerHTML = '';
+
+            // Use timestamps for consistency with programme positioning
+            const startTs = new Date(startTime).getTime();
+            const endTs = new Date(endTime).getTime();
+            const hourMs = 60 * 60 * 1000;
+            
+            // Round start to hour
+            const firstHourTs = Math.floor(startTs / hourMs) * hourMs;
+            
+            let currentTs = firstHourTs;
+            while (currentTs < endTs) {
+                const currentDate = new Date(currentTs);
+                const slot = document.createElement('div');
+                slot.className = 'time-slot';
+                slot.dataset.hour = currentDate.getHours();
+                slot.dataset.timestamp = currentTs;
+                slot.textContent = formatHour(currentDate);
+                
+                // Position slot based on timestamp (same as programmes)
+                const position = timeToPixels(currentTs);
+                slot.style.position = 'absolute';
+                slot.style.left = `${position}px`;
+                slot.style.width = `${CONFIG.hourWidth}px`;
+                
+                if (currentDate.getHours() === new Date().getHours() && 
+                    currentDate.toDateString() === new Date().toDateString()) {
+                    slot.classList.add('current-hour');
+                }
+                
+                container.appendChild(slot);
+                currentTs += hourMs;
+            }
+            
+            // Set container width to match grid
+            container.style.width = `${timeToPixels(endTs)}px`;
+        }
+
+        function renderChannelSidebar(channels) {
+            const container = document.getElementById('channelSidebarScroll');
+            container.innerHTML = '';
+
+            channels.forEach(channel => {
+                const row = document.createElement('div');
+                row.className = 'channel-row';
+                row.dataset.channelNumber = channel.number || '1000';
+                
+                // Logos served from EPG server (locally cached)
+                if (channel.logo) {
+                    const logo = document.createElement('img');
+                    logo.className = 'channel-logo';
+                    logo.src = channel.logo;
+                    logo.alt = channel.name;
+                    logo.onerror = () => logo.style.display = 'none';
+                    row.appendChild(logo);
+                }
+
+                const number = document.createElement('div');
+                number.className = 'channel-number';
+                number.textContent = channel.number || '—';
+                row.appendChild(number);
+
+                // Strip number prefix from name (e.g., "1000 Channel Name" -> "Channel Name")
+                let displayName = channel.name;
+                if (channel.number && displayName.startsWith(channel.number + ' ')) {
+                    displayName = displayName.substring(channel.number.length + 1);
+                }
+
+                const name = document.createElement('div');
+                name.className = 'channel-name';
+                name.textContent = displayName;
+                row.appendChild(name);
+
+                // Click to tune to channel
+                row.addEventListener('click', () => {
+                    window.location.href = `/ch${channel.number || '1000'}`;
+                });
+
+                container.appendChild(row);
+            });
+        }
+
+        function renderProgrammeGrid(channels, programmes) {
+            const container = document.getElementById('gridContent');
+            const nowLine = document.getElementById('nowLine');
+            
+            // Clear existing programmes (keep now line)
+            container.querySelectorAll('.channel-programmes').forEach(el => el.remove());
+            programmeElements = [];
+
+            const now = Date.now();
+
+            channels.forEach((channel, channelIndex) => {
+                const row = document.createElement('div');
+                row.className = 'channel-programmes';
+                
+                const channelProgs = programmes[channel.id] || [];
+                
+                channelProgs.forEach((prog, progIndex) => {
+                    const startPx = timeToPixels(prog.startTimestamp);
+                    const endPx = timeToPixels(prog.stopTimestamp);
+                    const width = endPx - startPx;
+
+                    if (width < 20) return; // Skip tiny programmes
+
+                    const block = document.createElement('div');
+                    block.className = 'programme';
+                    block.style.left = `${startPx}px`;
+                    block.style.width = `${width - 4}px`; // Small gap between programmes
+                    block.tabIndex = 0;
+                    
+                    const isNowPlaying = prog.startTimestamp <= now && prog.stopTimestamp > now;
+                    
+                    // Check if currently playing
+                    if (isNowPlaying) {
+                        block.classList.add('now-playing');
+                    }
+
+                    // Store navigation data
+                    block.dataset.channelIndex = channelIndex;
+                    block.dataset.channelId = channel.id;
+                    block.dataset.channelNumber = channel.number || '1000';
+
+                    // Store programme data for info panel
+                    block._programmeData = {
+                        ...prog,
+                        channelName: channel.name,
+                        channelNumber: channel.number,
+                        channelLogo: channel.logo,
+                        isNowPlaying
+                    };
+
+                    // Build content
+                    const title = document.createElement('div');
+                    title.className = 'programme-title';
+                    title.textContent = prog.title;
+                    block.appendChild(title);
+
+                    if (prog.subTitle) {
+                        const subtitle = document.createElement('div');
+                        subtitle.className = 'programme-subtitle';
+                        subtitle.textContent = prog.subTitle;
+                        block.appendChild(subtitle);
+                    } else if (prog.season && prog.episode) {
+                        const subtitle = document.createElement('div');
+                        subtitle.className = 'programme-subtitle';
+                        subtitle.textContent = `S${prog.season} E${prog.episode}`;
+                        block.appendChild(subtitle);
+                    }
+
+                    const time = document.createElement('div');
+                    time.className = 'programme-time';
+                    time.textContent = `${formatTime(new Date(prog.start))} - ${formatTime(new Date(prog.stop))}`;
+                    block.appendChild(time);
+
+                    // Click handler - show details for all, watch button for now-playing
+                    block.addEventListener('click', () => showProgrammeDetails(block._programmeData));
+
+                    row.appendChild(block);
+                    programmeElements.push({
+                        element: block,
+                        channelIndex,
+                        startTimestamp: prog.startTimestamp
+                    });
+                });
+
+                container.appendChild(row);
+            });
+
+            // Sort programme elements for navigation
+            programmeElements.sort((a, b) => {
+                if (a.channelIndex !== b.channelIndex) {
+                    return a.channelIndex - b.channelIndex;
+                }
+                return a.startTimestamp - b.startTimestamp;
+            });
+        }
+
+        // ============================================
+        // Navigation
+        // ============================================
+
+        function navigateToChannel(element) {
+            const channelNumber = element.dataset.channelNumber;
+            window.location.href = `/ch${channelNumber}`;
+        }
+
+        function showProgrammeDetails(prog) {
+            const container = document.getElementById('infoPanelContent');
+            
+            // Format episode info
+            let episodeInfo = '';
+            if (prog.season && prog.episode) {
+                episodeInfo = `S${prog.season} E${prog.episode}`;
+            } else if (prog.episode) {
+                episodeInfo = `Episode ${prog.episode}`;
+            }
+
+            // Format time slot
+            const startTime = formatTime(new Date(prog.start));
+            const endTime = formatTime(new Date(prog.stop));
+            const timeSlot = `${startTime} - ${endTime}`;
+
+            // Format date
+            const dateStr = new Date(prog.start).toLocaleDateString('en-US', {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric'
+            });
+
+            // Strip channel number prefix from name
+            let channelName = prog.channelName || 'Unknown Channel';
+            if (prog.channelNumber && channelName.startsWith(prog.channelNumber + ' ')) {
+                channelName = channelName.substring(prog.channelNumber.length + 1);
+            }
+
+            // Build HTML
+            let html = `
+                <div class="info-panel-thumbnail">
+                    ${prog.channelLogo 
+                        ? `<img src="${prog.channelLogo}" alt="${channelName}" onerror="this.parentElement.innerHTML='<div class=\\'info-panel-thumbnail-placeholder\\'>📺</div>'">`
+                        : '<div class="info-panel-thumbnail-placeholder">📺</div>'
+                    }
+                </div>
+                <div class="info-panel-details">
+                    <div class="info-panel-title-row">
+                        <div class="info-panel-title">${prog.title || 'Unknown Show'}</div>
+                        <div class="info-panel-subtitle">${prog.subTitle ? `— ${prog.subTitle}` : ''}</div>
+                    </div>
+                    <div class="info-panel-meta">
+                        <span>📺 Ch ${prog.channelNumber || '?'} · ${channelName}</span>
+                        <span>🕐 ${timeSlot}</span>
+                        <span>📅 ${dateStr}</span>
+                        ${prog.category ? `<span>🏷️ ${prog.category}</span>` : ''}
+                        ${episodeInfo ? `<span>📋 ${episodeInfo}</span>` : ''}
+                    </div>
+                    <div class="info-panel-description">${prog.description || 'No description available.'}</div>
+                </div>
+            `;
+
+            // Add Watch Now button only for now-playing
+            if (prog.isNowPlaying) {
+                html += `<button class="info-panel-watch-btn" onclick="window.location.href='/ch${prog.channelNumber}'">▶ Watch Now</button>`;
+            }
+
+            container.innerHTML = html;
+        }
+
+        function setFocus(element) {
+            if (focusedElement) {
+                focusedElement.classList.remove('focused');
+            }
+            
+            focusedElement = element;
+            
+            if (element) {
+                element.classList.add('focused');
+                element.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'nearest', 
+                    inline: 'center' 
+                });
+            }
+        }
+
+        function findNearestProgramme(direction) {
+            if (!focusedElement || programmeElements.length === 0) {
+                // Focus first "now playing" or first programme
+                const nowPlaying = document.querySelector('.programme.now-playing');
+                return nowPlaying || programmeElements[0]?.element;
+            }
+
+            const currentIndex = programmeElements.findIndex(p => p.element === focusedElement);
+            if (currentIndex === -1) return programmeElements[0]?.element;
+
+            const current = programmeElements[currentIndex];
+            const currentRect = focusedElement.getBoundingClientRect();
+
+            switch (direction) {
+                case 'left': {
+                    // Find previous programme on same channel
+                    for (let i = currentIndex - 1; i >= 0; i--) {
+                        if (programmeElements[i].channelIndex === current.channelIndex) {
+                            return programmeElements[i].element;
+                        }
+                    }
+                    break;
+                }
+                case 'right': {
+                    // Find next programme on same channel
+                    for (let i = currentIndex + 1; i < programmeElements.length; i++) {
+                        if (programmeElements[i].channelIndex === current.channelIndex) {
+                            return programmeElements[i].element;
+                        }
+                    }
+                    break;
+                }
+                case 'up': {
+                    // Find programme on channel above, closest to current time position
+                    const targetChannel = current.channelIndex - 1;
+                    if (targetChannel < 0) return focusedElement;
+                    
+                    const candidates = programmeElements.filter(p => p.channelIndex === targetChannel);
+                    return findClosestByPosition(candidates, currentRect) || focusedElement;
+                }
+                case 'down': {
+                    // Find programme on channel below
+                    const targetChannel = current.channelIndex + 1;
+                    const maxChannel = Math.max(...programmeElements.map(p => p.channelIndex));
+                    if (targetChannel > maxChannel) return focusedElement;
+                    
+                    const candidates = programmeElements.filter(p => p.channelIndex === targetChannel);
+                    return findClosestByPosition(candidates, currentRect) || focusedElement;
+                }
+            }
+
+            return focusedElement;
+        }
+
+        function findClosestByPosition(candidates, referenceRect) {
+            if (candidates.length === 0) return null;
+
+            const refCenter = referenceRect.left + referenceRect.width / 2;
+            
+            let closest = candidates[0];
+            let closestDistance = Infinity;
+
+            for (const candidate of candidates) {
+                const rect = candidate.element.getBoundingClientRect();
+                const center = rect.left + rect.width / 2;
+                const distance = Math.abs(center - refCenter);
+                
+                if (distance < closestDistance) {
+                    closestDistance = distance;
+                    closest = candidate;
+                }
+            }
+
+            return closest.element;
+        }
+
+        // ============================================
+        // Scroll Synchronization
+        // ============================================
+
+        function setupScrollSync() {
+            const gridArea = document.getElementById('gridArea');
+            const timeHeader = document.getElementById('timeHeaderScroll');
+            const channelSidebar = document.getElementById('channelSidebarScroll');
+
+            gridArea.addEventListener('scroll', () => {
+                timeHeader.style.transform = `translateX(-${gridArea.scrollLeft}px)`;
+                channelSidebar.style.transform = `translateY(-${gridArea.scrollTop}px)`;
+            });
+        }
+
+        // ============================================
+        // Keyboard / Remote Navigation
+        // ============================================
+
+        function setupKeyboardNavigation() {
+            document.addEventListener('keydown', (e) => {
+                switch (e.key) {
+                    case 'ArrowLeft':
+                        e.preventDefault();
+                        setFocus(findNearestProgramme('left'));
+                        break;
+                    case 'ArrowRight':
+                        e.preventDefault();
+                        setFocus(findNearestProgramme('right'));
+                        break;
+                    case 'ArrowUp':
+                        e.preventDefault();
+                        setFocus(findNearestProgramme('up'));
+                        break;
+                    case 'ArrowDown':
+                        e.preventDefault();
+                        setFocus(findNearestProgramme('down'));
+                        break;
+                    case 'Enter':
+                    case ' ':
+                        e.preventDefault();
+                        if (focusedElement) {
+                            navigateToChannel(focusedElement);
+                        } else {
+                            setFocus(findNearestProgramme('right'));
+                        }
+                        break;
+                    case 'Backspace':
+                        e.preventDefault();
+                        window.location.href = '/';
+                        break;
+                }
+            });
+        }
+
+        // ============================================
+        // Auto-scroll to Now
+        // ============================================
+
+        function scrollToNow() {
+            const gridArea = document.getElementById('gridArea');
+            const nowLine = document.getElementById('nowLine');
+            
+            if (nowLine && gridArea) {
+                const nowPosition = parseFloat(nowLine.style.left) || 0;
+                // Scroll so "now" is about 1/4 from the left
+                const targetScroll = Math.max(0, nowPosition - gridArea.clientWidth * 0.25);
+                gridArea.scrollLeft = targetScroll;
+            }
+        }
+
+        // ============================================
+        // Initialize
+        // ============================================
+
+        async function init() {
+            try {
+                epgData = await fetchEPG();
+                lastEpgRefresh = Date.now();
+                
+                gridStartTime = epgData.timeWindow.startTimestamp;
+                
+                // Render everything
+                renderTimeHeader(epgData.timeWindow.start, epgData.timeWindow.end);
+                renderChannelSidebar(epgData.channels);
+                renderProgrammeGrid(epgData.channels, epgData.programmes);
+                
+                // Setup
+                setupScrollSync();
+                setupKeyboardNavigation();
+                
+                // Update time display and now-playing status
+                updateCurrentTime();
+                setInterval(updateCurrentTime, CONFIG.refreshInterval);
+                
+                // Refresh EPG data periodically
+                setInterval(refreshEPGData, CONFIG.epgRefreshInterval);
+                
+                // Hide loading, show guide
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('guideContainer').style.display = 'block';
+                
+                // Scroll to current time
+                setTimeout(scrollToNow, 100);
+                
+                // Auto-focus first "now playing" programme
+                setTimeout(() => {
+                    const nowPlaying = document.querySelector('.programme.now-playing');
+                    if (nowPlaying) setFocus(nowPlaying);
+                }, 200);
+
+            } catch (error) {
+                document.getElementById('loading').innerHTML = `
+                    <div class="error">
+                        <h2>Unable to Load Guide</h2>
+                        <p>Could not connect to EPG server.<br>${error.message}</p>
+                        <button onclick="location.reload()">Retry</button>
+                    </div>
+                `;
+            }
+        }
+
+        // Start
+        init();
+    </script>
+</body>
+</html>

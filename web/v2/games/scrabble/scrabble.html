@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Scrabble</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800;900&family=JetBrains+Mono:wght@500;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #0f0f13;
+            --bg-primary: #16161d;
+            --bg-secondary: #1e1e27;
+            --bg-elevated: #282833;
+            --bg-hover: #32323f;
+            --accent: #f97316;
+            --accent-light: #fb923c;
+            --accent-dark: #ea580c;
+            --accent-glow: rgba(249, 115, 22, 0.35);
+            --success: #22c55e;
+            --success-glow: rgba(34, 197, 94, 0.3);
+            --danger: #ef4444;
+            --warning: #eab308;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --font-main: 'Nunito', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 14px;
+
+            /* Scrabble-specific colors */
+            --tile-bg: #f5deb3;
+            --tile-text: #1a1a1a;
+            --tile-border: #d4a574;
+            --board-bg: #2d5a3c;
+            --board-grid: #1f4028;
+            --cell-empty: #3a6b4a;
+            --cell-dl: #a3d9f5;
+            --cell-tl: #4da6ff;
+            --cell-dw: #ffb3b3;
+            --cell-tw: #ff6b6b;
+            --cell-center: #ffd700;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html,
+        body {
+            height: 100%;
+            overflow: hidden;
+            overscroll-behavior: none;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Header --- */
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--bg-elevated);
+            flex-shrink: 0;
+        }
+
+        .header-left,
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .back-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 6px;
+            border-radius: var(--radius-sm);
+            transition: all 0.2s;
+        }
+
+        .back-btn:hover {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .game-title {
+            font-size: 1.1rem;
+            font-weight: 800;
+            color: var(--accent);
+            letter-spacing: 1px;
+        }
+
+        .score-display {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .player-score {
+            background: var(--bg-secondary);
+            padding: 4px 10px;
+            border-radius: var(--radius-sm);
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+
+        .player-score.active {
+            background: var(--accent);
+            color: white;
+        }
+
+        .player-score .name {
+            color: var(--text-muted);
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            margin-right: 4px;
+        }
+
+        .player-score.active .name {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* --- Main Game Area --- */
+        .game-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 8px;
+            gap: 8px;
+            overflow: hidden;
+        }
+
+        /* --- Board --- */
+        .board-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 0;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(15, 1fr);
+            grid-template-rows: repeat(15, 1fr);
+            gap: 2px;
+            background: var(--board-grid);
+            padding: 4px;
+            border-radius: var(--radius-md);
+            aspect-ratio: 1;
+            max-width: min(90vw, 70vh);
+            max-height: 70vh;
+            width: 100%;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 0 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .cell {
+            background: var(--cell-empty);
+            border-radius: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(0.4rem, 1.2vw, 0.6rem);
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.4);
+            cursor: pointer;
+            transition: all 0.15s;
+            position: relative;
+            text-transform: uppercase;
+        }
+
+        .cell:hover:not(.has-tile) {
+            background: var(--bg-hover);
+            transform: scale(1.05);
+        }
+
+        .cell.dl {
+            background: var(--cell-dl);
+            color: #1a5a7a;
+        }
+
+        .cell.tl {
+            background: var(--cell-tl);
+            color: #0a3d66;
+        }
+
+        .cell.dw {
+            background: var(--cell-dw);
+            color: #8b3a3a;
+        }
+
+        .cell.tw {
+            background: var(--cell-tw);
+            color: #6b1a1a;
+        }
+
+        .cell.center {
+            background: var(--cell-center);
+            color: #8b6914;
+        }
+
+        .cell.has-tile {
+            background: transparent;
+        }
+
+        .cell.drop-target {
+            box-shadow: 0 0 0 2px var(--accent), 0 0 12px var(--accent-glow);
+        }
+
+        /* --- Tiles --- */
+        .tile {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(145deg, #f5deb3, #e8d4a0);
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(0.5rem, 1.8vw, 1rem);
+            font-weight: 900;
+            color: var(--tile-text);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+            cursor: grab;
+            position: relative;
+            user-select: none;
+        }
+
+        .tile:active {
+            cursor: grabbing;
+        }
+
+        .tile.selected {
+            box-shadow: 0 0 0 2px var(--accent), 0 4px 12px var(--accent-glow);
+            transform: scale(1.05);
+        }
+
+        .tile.placed-this-turn {
+            box-shadow: 0 0 0 2px var(--success), 0 4px 8px var(--success-glow);
+        }
+
+        .tile .points {
+            position: absolute;
+            bottom: 1px;
+            right: 2px;
+            font-size: clamp(0.3rem, 0.8vw, 0.5rem);
+            font-weight: 700;
+            color: #666;
+        }
+
+        .tile.blank {
+            font-style: italic;
+            color: #888;
+        }
+
+        /* Dragging tile */
+        .tile.dragging {
+            position: fixed;
+            width: 50px;
+            height: 50px;
+            z-index: 1000;
+            pointer-events: none;
+            opacity: 0.9;
+            transform: scale(1.2);
+        }
+
+        /* --- Tile Rack --- */
+        .rack-container {
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .rack {
+            display: flex;
+            gap: 6px;
+            padding: 10px 16px;
+            background: linear-gradient(180deg, #8b6914 0%, #654b0f 100%);
+            border-radius: var(--radius-md);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), inset 0 2px 0 rgba(255, 255, 255, 0.1);
+        }
+
+        .rack-tile {
+            width: clamp(36px, 8vw, 50px);
+            height: clamp(40px, 9vw, 55px);
+            background: linear-gradient(145deg, #f5deb3, #e8d4a0);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(1rem, 3vw, 1.5rem);
+            font-weight: 900;
+            color: var(--tile-text);
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+            cursor: grab;
+            position: relative;
+            user-select: none;
+            transition: all 0.15s;
+        }
+
+        .rack-tile:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+        }
+
+        .rack-tile.selected {
+            transform: translateY(-8px);
+            box-shadow: 0 0 0 3px var(--accent), 0 8px 16px var(--accent-glow);
+        }
+
+        .rack-tile .points {
+            position: absolute;
+            bottom: 2px;
+            right: 4px;
+            font-size: clamp(0.5rem, 1.2vw, 0.7rem);
+            font-weight: 700;
+            color: #666;
+        }
+
+        .rack-tile.empty {
+            background: rgba(0, 0, 0, 0.2);
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        /* --- Action Buttons --- */
+        .action-bar {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            padding: 10px 20px;
+            font-family: var(--font-main);
+            font-size: 0.85rem;
+            font-weight: 700;
+            border: none;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .action-btn.primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .action-btn.primary:hover {
+            background: var(--accent-light);
+            transform: translateY(-2px);
+        }
+
+        .action-btn.primary:disabled {
+            background: var(--bg-elevated);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .action-btn.secondary {
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            border: 1px solid var(--bg-elevated);
+        }
+
+        .action-btn.secondary:hover {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+        }
+
+        .action-btn.danger {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .action-btn.danger:hover {
+            background: rgba(239, 68, 68, 0.2);
+        }
+
+        /* --- Word Preview --- */
+        .word-preview {
+            position: fixed;
+            bottom: 140px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--bg-elevated);
+            padding: 8px 16px;
+            border-radius: var(--radius-md);
+            font-size: 1rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            display: none;
+            z-index: 100;
+            border: 2px solid var(--bg-hover);
+        }
+
+        .word-preview.show {
+            display: block;
+        }
+
+        .word-preview.valid {
+            border-color: var(--success);
+            color: var(--success);
+        }
+
+        .word-preview.invalid {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .word-preview .score-badge {
+            margin-left: 8px;
+            font-family: var(--font-mono);
+            color: var(--success);
+        }
+
+        /* --- Toast Messages --- */
+        .toast {
+            position: fixed;
+            bottom: 200px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--bg-elevated);
+            padding: 12px 24px;
+            border-radius: var(--radius-md);
+            font-weight: 700;
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        .toast.success {
+            border-left: 4px solid var(--success);
+            color: var(--success);
+        }
+
+        .toast.error {
+            border-left: 4px solid var(--danger);
+            color: var(--danger);
+        }
+
+        /* --- Bag Counter --- */
+        .bag-counter {
+            position: absolute;
+            top: 50%;
+            right: 12px;
+            transform: translateY(-50%);
+            background: var(--bg-secondary);
+            padding: 8px 12px;
+            border-radius: var(--radius-md);
+            text-align: center;
+            border: 1px solid var(--bg-elevated);
+        }
+
+        .bag-counter .label {
+            font-size: 0.6rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+        }
+
+        .bag-counter .count {
+            font-family: var(--font-mono);
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        /* --- Loading State --- */
+        .loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: var(--bg-deep);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid var(--bg-elevated);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* --- Responsive --- */
+        @media (max-width: 600px) {
+            .game-header {
+                padding: 6px 10px;
+            }
+
+            .game-title {
+                font-size: 0.95rem;
+            }
+
+            .board {
+                max-width: 95vw;
+                max-height: 60vh;
+            }
+
+            .rack-tile {
+                width: clamp(32px, 10vw, 44px);
+                height: clamp(36px, 11vw, 50px);
+            }
+
+            .action-btn {
+                padding: 8px 14px;
+                font-size: 0.8rem;
+            }
+
+            .bag-counter {
+                display: none;
+            }
+        }
+
+        /* Hide loading after init */
+        .loading-overlay.hidden {
+            display: none;
+        }
+
+        /* --- Blank Tile Modal --- */
+        .blank-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+        }
+
+        .blank-modal-overlay.hidden {
+            display: none;
+        }
+
+        .blank-modal {
+            background: var(--bg-primary);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            max-width: 320px;
+            width: 90%;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--bg-elevated);
+        }
+
+        .blank-modal h3 {
+            text-align: center;
+            margin-bottom: 16px;
+            color: var(--accent);
+            font-size: 1.1rem;
+        }
+
+        .blank-letters {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
+        }
+
+        .blank-letter-btn {
+            aspect-ratio: 1;
+            background: linear-gradient(145deg, #f5deb3, #e8d4a0);
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 1rem;
+            font-weight: 900;
+            color: var(--tile-text);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .blank-letter-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 0 2px var(--accent), 0 4px 8px var(--accent-glow);
+        }
+
+        .blank-modal-cancel {
+            width: 100%;
+            margin-top: 12px;
+            padding: 10px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--bg-elevated);
+            border-radius: var(--radius-md);
+            color: var(--text-secondary);
+            font-family: var(--font-main);
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .blank-modal-cancel:hover {
+            background: var(--bg-elevated);
+            color: var(--text-primary);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <!-- Header -->
+    <header class="game-header">
+        <div class="header-left">
+            <button class="back-btn" id="backBtn" title="Back to Games">←</button>
+            <span class="game-title">SCRABBLE</span>
+        </div>
+        <div class="header-right">
+            <div class="score-display">
+                <div class="player-score active" id="player1Score">
+                    <span class="name">You</span>
+                    <span class="value">0</span>
+                </div>
+                <div class="player-score" id="player2Score">
+                    <span class="name">Opp</span>
+                    <span class="value">0</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Game Area -->
+    <main class="game-container">
+        <!-- Board -->
+        <div class="board-container">
+            <div class="board" id="board"></div>
+            <div class="bag-counter">
+                <div class="label">Bag</div>
+                <div class="count" id="bagCount">100</div>
+            </div>
+        </div>
+
+        <!-- Tile Rack -->
+        <div class="rack-container">
+            <div class="rack" id="rack"></div>
+            <div class="action-bar">
+                <button class="action-btn secondary" id="shuffleBtn">🔀 Shuffle</button>
+                <button class="action-btn secondary" id="recallBtn">↩️ Recall</button>
+                <button class="action-btn primary" id="playBtn" disabled>✓ Play</button>
+                <button class="action-btn danger" id="passBtn">⏭️ Pass</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Word Preview -->
+    <div class="word-preview" id="wordPreview"></div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <!-- Blank Tile Letter Modal -->
+    <div class="blank-modal-overlay hidden" id="blankModal">
+        <div class="blank-modal">
+            <h3>Choose a letter for blank</h3>
+            <div class="blank-letters" id="blankLetters"></div>
+            <button class="blank-modal-cancel" id="blankCancel">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Dictionary Script -->
+    <script src="../../js/dictionary.js"></script>
+
+    <script>
+        // ============================================
+        // SCRABBLE GAME - Phase 1: Local Prototype
+        // ============================================
+
+        // --- Tile Configuration ---
+        const TILE_DISTRIBUTION = {
+            'A': { count: 9, points: 1 },
+            'B': { count: 2, points: 3 },
+            'C': { count: 2, points: 3 },
+            'D': { count: 4, points: 2 },
+            'E': { count: 12, points: 1 },
+            'F': { count: 2, points: 4 },
+            'G': { count: 3, points: 2 },
+            'H': { count: 2, points: 4 },
+            'I': { count: 9, points: 1 },
+            'J': { count: 1, points: 8 },
+            'K': { count: 1, points: 5 },
+            'L': { count: 4, points: 1 },
+            'M': { count: 2, points: 3 },
+            'N': { count: 6, points: 1 },
+            'O': { count: 8, points: 1 },
+            'P': { count: 2, points: 3 },
+            'Q': { count: 1, points: 10 },
+            'R': { count: 6, points: 1 },
+            'S': { count: 4, points: 1 },
+            'T': { count: 6, points: 1 },
+            'U': { count: 4, points: 1 },
+            'V': { count: 2, points: 4 },
+            'W': { count: 2, points: 4 },
+            'X': { count: 1, points: 8 },
+            'Y': { count: 2, points: 4 },
+            'Z': { count: 1, points: 10 },
+            '_': { count: 2, points: 0 }  // Blank tiles
+        };
+
+        // --- Board Layout (multipliers) ---
+        // TW = Triple Word, DW = Double Word, TL = Triple Letter, DL = Double Letter
+        const BOARD_LAYOUT = [
+            ['tw', '', '', 'dl', '', '', '', 'tw', '', '', '', 'dl', '', '', 'tw'],
+            ['', 'dw', '', '', '', 'tl', '', '', '', 'tl', '', '', '', 'dw', ''],
+            ['', '', 'dw', '', '', '', 'dl', '', 'dl', '', '', '', 'dw', '', ''],
+            ['dl', '', '', 'dw', '', '', '', 'dl', '', '', '', 'dw', '', '', 'dl'],
+            ['', '', '', '', 'dw', '', '', '', '', '', 'dw', '', '', '', ''],
+            ['', 'tl', '', '', '', 'tl', '', '', '', 'tl', '', '', '', 'tl', ''],
+            ['', '', 'dl', '', '', '', 'dl', '', 'dl', '', '', '', 'dl', '', ''],
+            ['tw', '', '', 'dl', '', '', '', 'center', '', '', '', 'dl', '', '', 'tw'],
+            ['', '', 'dl', '', '', '', 'dl', '', 'dl', '', '', '', 'dl', '', ''],
+            ['', 'tl', '', '', '', 'tl', '', '', '', 'tl', '', '', '', 'tl', ''],
+            ['', '', '', '', 'dw', '', '', '', '', '', 'dw', '', '', '', ''],
+            ['dl', '', '', 'dw', '', '', '', 'dl', '', '', '', 'dw', '', '', 'dl'],
+            ['', '', 'dw', '', '', '', 'dl', '', 'dl', '', '', '', 'dw', '', ''],
+            ['', 'dw', '', '', '', 'tl', '', '', '', 'tl', '', '', '', 'dw', ''],
+            ['tw', '', '', 'dl', '', '', '', 'tw', '', '', '', 'dl', '', '', 'tw']
+        ];
+
+        const MULTIPLIER_LABELS = {
+            'tw': 'TW',
+            'dw': 'DW',
+            'tl': 'TL',
+            'dl': 'DL',
+            'center': '★'
+        };
+
+        // --- Game State ---
+        class ScrabbleGame {
+            constructor() {
+                this.board = Array(15).fill(null).map(() => Array(15).fill(null));
+                this.tileBag = [];
+                this.playerRack = [];
+                this.placedThisTurn = []; // {row, col, letter, points, rackIndex}
+                this.scores = { player1: 0, player2: 0 };
+                this.currentPlayer = 1;
+                this.selectedRackIndex = null;
+                this.isFirstMove = true;
+                this.dictionaryReady = false;
+
+                this.initTileBag();
+                this.drawTiles(7);
+            }
+
+            initTileBag() {
+                this.tileBag = [];
+                for (const [letter, config] of Object.entries(TILE_DISTRIBUTION)) {
+                    for (let i = 0; i < config.count; i++) {
+                        this.tileBag.push({ letter, points: config.points });
+                    }
+                }
+                this.shuffleBag();
+            }
+
+            shuffleBag() {
+                for (let i = this.tileBag.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [this.tileBag[i], this.tileBag[j]] = [this.tileBag[j], this.tileBag[i]];
+                }
+            }
+
+            drawTiles(count) {
+                const drawn = [];
+                for (let i = 0; i < count && this.tileBag.length > 0; i++) {
+                    drawn.push(this.tileBag.pop());
+                }
+                this.playerRack.push(...drawn);
+                return drawn;
+            }
+
+            placeTile(row, col, rackIndex, assignedLetter = null) {
+                if (this.board[row][col] !== null) return false;
+                if (rackIndex < 0 || rackIndex >= this.playerRack.length) return false;
+                if (this.playerRack[rackIndex] === null) return false;
+
+                const tile = this.playerRack[rackIndex];
+                const boardTile = { ...tile, placedThisTurn: true };
+
+                // If it's a blank tile, store the assigned letter
+                if (tile.letter === '_' && assignedLetter) {
+                    boardTile.assignedLetter = assignedLetter;
+                }
+
+                this.board[row][col] = boardTile;
+                this.placedThisTurn.push({
+                    row,
+                    col,
+                    letter: tile.letter,
+                    points: tile.points,
+                    rackIndex,
+                    assignedLetter: assignedLetter
+                });
+                this.playerRack[rackIndex] = null;
+                this.selectedRackIndex = null;
+                return true;
+            }
+
+            recallTiles() {
+                for (const placed of this.placedThisTurn) {
+                    this.board[placed.row][placed.col] = null;
+                    this.playerRack[placed.rackIndex] = { letter: placed.letter, points: placed.points };
+                }
+                this.placedThisTurn = [];
+            }
+
+            getWordsFormed() {
+                if (this.placedThisTurn.length === 0) return [];
+
+                const words = [];
+                const positions = this.placedThisTurn.map(p => ({ row: p.row, col: p.col }));
+
+                // Determine direction
+                const rows = [...new Set(positions.map(p => p.row))];
+                const cols = [...new Set(positions.map(p => p.col))];
+                const isHorizontal = rows.length === 1;
+                const isVertical = cols.length === 1;
+
+                if (positions.length > 1 && !isHorizontal && !isVertical) {
+                    return null; // Invalid placement (not in a line)
+                }
+
+                // Get main word
+                if (isHorizontal || positions.length === 1) {
+                    const row = positions[0].row;
+                    const mainWord = this.getWordAt(row, positions[0].col, true);
+                    if (mainWord && mainWord.word.length > 1) words.push(mainWord);
+                }
+                if (isVertical || positions.length === 1) {
+                    const col = positions[0].col;
+                    const mainWord = this.getWordAt(positions[0].row, col, false);
+                    if (mainWord && mainWord.word.length > 1) words.push(mainWord);
+                }
+
+                // Get cross words
+                for (const pos of positions) {
+                    if (isHorizontal) {
+                        const crossWord = this.getWordAt(pos.row, pos.col, false);
+                        if (crossWord && crossWord.word.length > 1) {
+                            if (!words.some(w => w.word === crossWord.word && w.startRow === crossWord.startRow && w.startCol === crossWord.startCol)) {
+                                words.push(crossWord);
+                            }
+                        }
+                    } else {
+                        const crossWord = this.getWordAt(pos.row, pos.col, true);
+                        if (crossWord && crossWord.word.length > 1) {
+                            if (!words.some(w => w.word === crossWord.word && w.startRow === crossWord.startRow && w.startCol === crossWord.startCol)) {
+                                words.push(crossWord);
+                            }
+                        }
+                    }
+                }
+
+                return words;
+            }
+
+            getWordAt(row, col, horizontal) {
+                let startRow = row, startCol = col;
+                let word = '';
+                let score = 0;
+                let wordMultiplier = 1;
+                const tiles = [];
+
+                // Find start of word
+                if (horizontal) {
+                    while (startCol > 0 && this.board[row][startCol - 1] !== null) startCol--;
+                } else {
+                    while (startRow > 0 && this.board[startRow - 1][col] !== null) startRow--;
+                }
+
+                // Read word
+                let r = startRow, c = startCol;
+                while (r < 15 && c < 15 && this.board[r][c] !== null) {
+                    const tile = this.board[r][c];
+                    word += tile.letter === '_' ? (tile.assignedLetter || '?') : tile.letter;
+
+                    const multiplier = BOARD_LAYOUT[r][c];
+                    let letterMultiplier = 1;
+
+                    // Only apply multipliers for newly placed tiles
+                    if (tile.placedThisTurn) {
+                        if (multiplier === 'dl') letterMultiplier = 2;
+                        else if (multiplier === 'tl') letterMultiplier = 3;
+                        else if (multiplier === 'dw' || multiplier === 'center') wordMultiplier *= 2;
+                        else if (multiplier === 'tw') wordMultiplier *= 3;
+                    }
+
+                    score += tile.points * letterMultiplier;
+                    tiles.push({ row: r, col: c, tile });
+
+                    if (horizontal) c++;
+                    else r++;
+                }
+
+                return {
+                    word,
+                    score: score * wordMultiplier,
+                    startRow,
+                    startCol,
+                    tiles
+                };
+            }
+
+            validatePlacement() {
+                if (this.placedThisTurn.length === 0) {
+                    return { valid: false, error: 'Place at least one tile' };
+                }
+
+                const positions = this.placedThisTurn.map(p => ({ row: p.row, col: p.col }));
+                const rows = [...new Set(positions.map(p => p.row))];
+                const cols = [...new Set(positions.map(p => p.col))];
+
+                // Must be in a line
+                if (positions.length > 1 && rows.length > 1 && cols.length > 1) {
+                    return { valid: false, error: 'Tiles must be in a single line' };
+                }
+
+                // Must be continuous (no gaps)
+                if (positions.length > 1) {
+                    const isHorizontal = rows.length === 1;
+                    if (isHorizontal) {
+                        const minCol = Math.min(...cols);
+                        const maxCol = Math.max(...cols);
+                        for (let c = minCol; c <= maxCol; c++) {
+                            if (this.board[rows[0]][c] === null) {
+                                return { valid: false, error: 'Tiles must be continuous' };
+                            }
+                        }
+                    } else {
+                        const minRow = Math.min(...rows);
+                        const maxRow = Math.max(...rows);
+                        for (let r = minRow; r <= maxRow; r++) {
+                            if (this.board[r][cols[0]] === null) {
+                                return { valid: false, error: 'Tiles must be continuous' };
+                            }
+                        }
+                    }
+                }
+
+                // First move must cover center
+                if (this.isFirstMove) {
+                    const coversCenter = positions.some(p => p.row === 7 && p.col === 7);
+                    if (!coversCenter) {
+                        return { valid: false, error: 'First word must cover center' };
+                    }
+                } else {
+                    // Subsequent moves must connect to existing tiles
+                    let connects = false;
+                    for (const pos of positions) {
+                        const neighbors = [
+                            [pos.row - 1, pos.col],
+                            [pos.row + 1, pos.col],
+                            [pos.row, pos.col - 1],
+                            [pos.row, pos.col + 1]
+                        ];
+                        for (const [r, c] of neighbors) {
+                            if (r >= 0 && r < 15 && c >= 0 && c < 15) {
+                                if (this.board[r][c] !== null && !this.board[r][c].placedThisTurn) {
+                                    connects = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (connects) break;
+                    }
+                    if (!connects) {
+                        return { valid: false, error: 'Must connect to existing tiles' };
+                    }
+                }
+
+                return { valid: true };
+            }
+
+            validateWords() {
+                const words = this.getWordsFormed();
+                if (words === null) {
+                    return { valid: false, error: 'Invalid tile placement' };
+                }
+                if (words.length === 0) {
+                    return { valid: false, error: 'No words formed' };
+                }
+
+                for (const wordInfo of words) {
+                    if (!isValidWord(wordInfo.word)) {
+                        return { valid: false, error: `"${wordInfo.word}" is not a valid word`, invalidWord: wordInfo.word };
+                    }
+                }
+
+                return { valid: true, words };
+            }
+
+            calculateScore() {
+                const words = this.getWordsFormed();
+                if (!words) return 0;
+
+                let totalScore = words.reduce((sum, w) => sum + w.score, 0);
+
+                // Bingo bonus (all 7 tiles played)
+                if (this.placedThisTurn.length === 7) {
+                    totalScore += 50;
+                }
+
+                return totalScore;
+            }
+
+            commitMove() {
+                const score = this.calculateScore();
+                this.scores.player1 += score;
+
+                // Remove placedThisTurn flag
+                for (const placed of this.placedThisTurn) {
+                    if (this.board[placed.row][placed.col]) {
+                        this.board[placed.row][placed.col].placedThisTurn = false;
+                    }
+                }
+
+                // Remove nulls from rack and draw new tiles
+                this.playerRack = this.playerRack.filter(t => t !== null);
+                this.drawTiles(7 - this.playerRack.length);
+
+                this.placedThisTurn = [];
+                this.isFirstMove = false;
+
+                return score;
+            }
+
+            shuffleRack() {
+                for (let i = this.playerRack.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [this.playerRack[i], this.playerRack[j]] = [this.playerRack[j], this.playerRack[i]];
+                }
+            }
+        }
+
+        // ============================================
+        // UI Controller
+        // ============================================
+
+        class ScrabbleUI {
+            constructor() {
+                this.game = new ScrabbleGame();
+                this.boardEl = document.getElementById('board');
+                this.rackEl = document.getElementById('rack');
+                this.bagCountEl = document.getElementById('bagCount');
+                this.playBtn = document.getElementById('playBtn');
+                this.wordPreviewEl = document.getElementById('wordPreview');
+                this.toastEl = document.getElementById('toast');
+
+                this.init();
+            }
+
+            async init() {
+                this.renderBoard();
+                this.renderRack();
+                this.updateBagCount();
+                this.bindEvents();
+
+                // Load dictionary
+                const loaded = await loadDictionary();
+                this.game.dictionaryReady = loaded;
+
+                document.getElementById('loadingOverlay').classList.add('hidden');
+
+                if (!loaded) {
+                    this.showToast('Dictionary failed to load!', 'error');
+                }
+            }
+
+            renderBoard() {
+                this.boardEl.innerHTML = '';
+                for (let row = 0; row < 15; row++) {
+                    for (let col = 0; col < 15; col++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'cell';
+                        cell.dataset.row = row;
+                        cell.dataset.col = col;
+
+                        const multiplier = BOARD_LAYOUT[row][col];
+                        if (multiplier) {
+                            cell.classList.add(multiplier);
+                            cell.textContent = MULTIPLIER_LABELS[multiplier] || '';
+                        }
+
+                        const tile = this.game.board[row][col];
+                        if (tile) {
+                            cell.classList.add('has-tile');
+                            cell.innerHTML = this.createTileHTML(tile);
+                        }
+
+                        this.boardEl.appendChild(cell);
+                    }
+                }
+            }
+
+            createTileHTML(tile) {
+                const isBlank = tile.letter === '_';
+                const displayLetter = isBlank ? (tile.assignedLetter || '') : tile.letter;
+                const classes = ['tile'];
+                if (tile.placedThisTurn) classes.push('placed-this-turn');
+                if (isBlank) classes.push('blank');
+
+                return `
+                    <div class="${classes.join(' ')}">
+                        ${displayLetter}
+                        <span class="points">${tile.points}</span>
+                    </div>
+                `;
+            }
+
+            renderRack() {
+                this.rackEl.innerHTML = '';
+                for (let i = 0; i < 7; i++) {
+                    const tile = this.game.playerRack[i];
+                    const rackTile = document.createElement('div');
+                    rackTile.className = 'rack-tile';
+                    rackTile.dataset.index = i;
+
+                    if (tile) {
+                        const isBlank = tile.letter === '_';
+                        rackTile.innerHTML = `
+                            ${isBlank ? '' : tile.letter}
+                            <span class="points">${tile.points}</span>
+                        `;
+                        if (this.game.selectedRackIndex === i) {
+                            rackTile.classList.add('selected');
+                        }
+                    } else {
+                        rackTile.classList.add('empty');
+                    }
+
+                    this.rackEl.appendChild(rackTile);
+                }
+            }
+
+            updateBagCount() {
+                this.bagCountEl.textContent = this.game.tileBag.length;
+            }
+
+            updateScores() {
+                document.querySelector('#player1Score .value').textContent = this.game.scores.player1;
+                document.querySelector('#player2Score .value').textContent = this.game.scores.player2;
+            }
+
+            bindEvents() {
+                // Rack tile selection
+                this.rackEl.addEventListener('click', (e) => {
+                    const rackTile = e.target.closest('.rack-tile');
+                    if (!rackTile || rackTile.classList.contains('empty')) return;
+
+                    const index = parseInt(rackTile.dataset.index);
+                    if (this.game.selectedRackIndex === index) {
+                        this.game.selectedRackIndex = null;
+                    } else {
+                        this.game.selectedRackIndex = index;
+                    }
+                    this.renderRack();
+                });
+
+                // Board cell click
+                this.boardEl.addEventListener('click', (e) => {
+                    const cell = e.target.closest('.cell');
+                    if (!cell) return;
+
+                    const row = parseInt(cell.dataset.row);
+                    const col = parseInt(cell.dataset.col);
+
+                    if (this.game.selectedRackIndex !== null) {
+                        const tile = this.game.playerRack[this.game.selectedRackIndex];
+                        if (tile && tile.letter === '_') {
+                            // It's a blank tile - show letter picker
+                            this.showBlankModal(row, col, this.game.selectedRackIndex);
+                        } else if (this.game.placeTile(row, col, this.game.selectedRackIndex)) {
+                            this.renderBoard();
+                            this.renderRack();
+                            this.updateWordPreview();
+                            this.updatePlayButton();
+                        }
+                    }
+                });
+
+                // Shuffle button
+                document.getElementById('shuffleBtn').addEventListener('click', () => {
+                    this.game.shuffleRack();
+                    this.renderRack();
+                });
+
+                // Recall button
+                document.getElementById('recallBtn').addEventListener('click', () => {
+                    this.game.recallTiles();
+                    this.renderBoard();
+                    this.renderRack();
+                    this.updateWordPreview();
+                    this.updatePlayButton();
+                });
+
+                // Play button
+                this.playBtn.addEventListener('click', () => this.playWord());
+
+                // Pass button
+                document.getElementById('passBtn').addEventListener('click', () => {
+                    this.game.recallTiles();
+                    this.renderBoard();
+                    this.renderRack();
+                    this.showToast('Turn passed', 'success');
+                    this.updateWordPreview();
+                    this.updatePlayButton();
+                });
+
+                // Back button
+                document.getElementById('backBtn').addEventListener('click', () => {
+                    window.location.href = '../../games.html';
+                });
+            }
+
+            updateWordPreview() {
+                if (this.game.placedThisTurn.length === 0) {
+                    this.wordPreviewEl.classList.remove('show');
+                    return;
+                }
+
+                const placement = this.game.validatePlacement();
+                if (!placement.valid) {
+                    this.wordPreviewEl.textContent = placement.error;
+                    this.wordPreviewEl.className = 'word-preview show invalid';
+                    return;
+                }
+
+                const words = this.game.getWordsFormed();
+                if (!words || words.length === 0) {
+                    this.wordPreviewEl.classList.remove('show');
+                    return;
+                }
+
+                const wordStrings = words.map(w => w.word).join(', ');
+                const totalScore = this.game.calculateScore();
+                let isValid = true;
+
+                if (this.game.dictionaryReady) {
+                    for (const w of words) {
+                        if (!isValidWord(w.word)) {
+                            isValid = false;
+                            break;
+                        }
+                    }
+                }
+
+                this.wordPreviewEl.innerHTML = `${wordStrings} <span class="score-badge">+${totalScore}</span>`;
+                this.wordPreviewEl.className = `word-preview show ${isValid ? 'valid' : 'invalid'}`;
+            }
+
+            updatePlayButton() {
+                const placement = this.game.validatePlacement();
+                this.playBtn.disabled = !placement.valid;
+            }
+
+            playWord() {
+                const placement = this.game.validatePlacement();
+                if (!placement.valid) {
+                    this.showToast(placement.error, 'error');
+                    return;
+                }
+
+                if (this.game.dictionaryReady) {
+                    const validation = this.game.validateWords();
+                    if (!validation.valid) {
+                        this.showToast(validation.error, 'error');
+                        return;
+                    }
+                }
+
+                const score = this.game.commitMove();
+                this.renderBoard();
+                this.renderRack();
+                this.updateBagCount();
+                this.updateScores();
+                this.updateWordPreview();
+                this.updatePlayButton();
+
+                this.showToast(`+${score} points!`, 'success');
+            }
+
+            showToast(message, type = 'success') {
+                this.toastEl.textContent = message;
+                this.toastEl.className = `toast show ${type}`;
+                setTimeout(() => {
+                    this.toastEl.classList.remove('show');
+                }, 2500);
+            }
+
+            showBlankModal(row, col, rackIndex) {
+                const modalOverlay = document.getElementById('blankModal');
+                const lettersContainer = document.getElementById('blankLetters');
+                const cancelBtn = document.getElementById('blankCancel');
+
+                // Generate letter buttons A-Z
+                lettersContainer.innerHTML = '';
+                for (let i = 0; i < 26; i++) {
+                    const letter = String.fromCharCode(65 + i);
+                    const btn = document.createElement('button');
+                    btn.className = 'blank-letter-btn';
+                    btn.textContent = letter;
+                    btn.addEventListener('click', () => {
+                        // Place the blank tile with the assigned letter
+                        if (this.game.placeTile(row, col, rackIndex, letter)) {
+                            this.renderBoard();
+                            this.renderRack();
+                            this.updateWordPreview();
+                            this.updatePlayButton();
+                        }
+                        modalOverlay.classList.add('hidden');
+                    });
+                    lettersContainer.appendChild(btn);
+                }
+
+                // Cancel button handler
+                const cancelHandler = () => {
+                    modalOverlay.classList.add('hidden');
+                    cancelBtn.removeEventListener('click', cancelHandler);
+                };
+                cancelBtn.addEventListener('click', cancelHandler);
+
+                // Show modal
+                modalOverlay.classList.remove('hidden');
+            }
+        }
+
+        // --- Initialize ---
+        document.addEventListener('DOMContentLoaded', () => {
+            window.scrabbleUI = new ScrabbleUI();
+        });
+    </script>
+</body>
+
+</html>

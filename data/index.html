@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ylem TV</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            text-align: center;
+            padding: 20px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        h1 {
+            color: #ffffff;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            border-bottom: 2px solid #333;
+            padding-bottom: 15px;
+        }
+
+        .menu {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .link-btn {
+            display: block;
+            background: linear-gradient(180deg, #1a1a1a 0%, #111 100%);
+            color: #fff;
+            padding: 20px 24px;
+            text-decoration: none;
+            border: 1px solid #333;
+            border-radius: 8px;
+            font-size: 1.3em;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            text-align: center;
+        }
+
+        .link-btn:hover {
+            background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);
+            border-color: #555;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6);
+        }
+
+        .link-btn:active {
+            transform: translateY(0);
+        }
+
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .link-btn {
+                padding: 18px 20px;
+                font-size: 1.1em;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>📺 Ylem TV</h1>
+
+        <div class="menu">
+            <a class="link-btn" href="/guide">📺 Channel Guide</a>
+            <a class="link-btn" href="/games">🎮 Games</a>
+        </div>
+    </div>
+</body>
+
+</html>

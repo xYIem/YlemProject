@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=ErsatzTV Stream Autostart
+Exec=/home/ylem/stream_startup.sh
+Terminal=false
+Comment=Starts MPV streaming ErsatzTV channel on boot.
+StartupNotify=false
+X-GNOME-Autostart-enabled=true

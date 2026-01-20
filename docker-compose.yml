@@ -1,0 +1,63 @@
+# ===========================================
+# YLEM - Docker Compose Configuration
+# ===========================================
+# Uses environment variables from .env file
+# Run: docker-compose up -d
+# ===========================================
+
+services:
+  # ─────────────────────────────────────────────
+  # Nginx Proxy Manager
+  # Handles SSL, routing, and reverse proxy
+  # ─────────────────────────────────────────────
+  app:
+    image: jc21/nginx-proxy-manager:${NPM_IMAGE_VERSION:-latest}
+    container_name: ylem-npm
+    restart: unless-stopped
+    ports:
+      - '${NPM_HTTP_PORT:-80}:80'
+      - '${NPM_ADMIN_PORT:-81}:81'
+      - '${NPM_HTTPS_PORT:-443}:443'
+    volumes:
+      - ./data:/data
+      - ./letsencrypt:/etc/letsencrypt
+    environment:
+      - TZ=America/Los_Angeles
+
+  # ─────────────────────────────────────────────
+  # EPG Server
+  # Fetches TV guide data from ErsatzTV
+  # ─────────────────────────────────────────────
+  epg-server:
+    image: node:${NODE_IMAGE_VERSION:-20-alpine}
+    container_name: ylem-epg-server
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ./epg-server:/app
+    command: node epg-server.js
+    ports:
+      - '${EPG_SERVER_PORT:-3001}:3001'
+    environment:
+      - HOST_IP=${HOST_IP}
+      - ERSATZTV_PORT=${ERSATZTV_PORT:-8409}
+      - PORT=3001
+      - TZ=America/Los_Angeles
+
+  # ─────────────────────────────────────────────
+  # Game Server
+  # WebSocket server for Boggle multiplayer
+  # ─────────────────────────────────────────────
+  game-server:
+    image: node:${NODE_IMAGE_VERSION:-20-alpine}
+    container_name: ylem-game-server
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ./game-server:/app
+    command: sh -c "npm install && node server.js"
+    ports:
+      - '${GAME_SERVER_PORT:-3000}:3000'
+    environment:
+      - PORT=3000
+      - TZ=America/Los_Angeles

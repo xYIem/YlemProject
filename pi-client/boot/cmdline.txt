@@ -1,0 +1,1 @@
+console=tty1 root=PARTUUID=37776d9c-02 rootfstype=ext4 fsck.repair=yes rootwait quiet splash plymouth.ignore-serial-consoles cfg80211.ieee80211_regdom=US video=Composite-1:720x480@60ie,margin_left=25,margin_right=7,margin_top=18,margin_bottom=20

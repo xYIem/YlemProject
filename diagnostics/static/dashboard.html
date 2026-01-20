@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ylem Stream Diagnostics</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;600;700&display=swap');
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        :root {
+            --bg-dark: #0a0a0f;
+            --bg-card: #12121a;
+            --bg-card-alt: #0d0d14;
+            --border: #2a2a3a;
+            --text: #e0e0e0;
+            --text-dim: #707080;
+            --accent: #00ff88;
+            --accent-dim: #00ff8833;
+            --warning: #ffaa00;
+            --warning-dim: #ffaa0033;
+            --error: #ff4466;
+            --error-dim: #ff446633;
+        }
+        
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--bg-dark);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 16px;
+        }
+        
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        h1 {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .live-dot {
+            width: 8px; height: 8px;
+            background: var(--accent);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--accent); }
+            50% { opacity: 0.5; }
+        }
+        
+        .header-right { font-size: 11px; color: var(--text-dim); display: flex; align-items: center; gap: 15px; }
+        
+        .time-range-select {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+        
+        .time-range-select:hover { border-color: var(--accent); }
+        
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 16px;
+        }
+        
+        .tab {
+            padding: 10px 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 6px 6px 0 0;
+            color: var(--text-dim);
+            cursor: pointer;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s;
+        }
+        
+        .tab:hover { background: var(--bg-card-alt); color: var(--text); }
+        .tab.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        /* Risk Banner */
+        .risk-banner {
+            padding: 14px 20px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .risk-banner.ok { background: var(--accent-dim); border: 1px solid var(--accent); }
+        .risk-banner.warning { background: var(--warning-dim); border: 1px solid var(--warning); }
+        .risk-banner.danger, .risk-banner.critical { background: var(--error-dim); border: 2px solid var(--error); animation: dangerPulse 1s infinite; }
+        
+        @keyframes dangerPulse {
+            0%, 100% { border-color: var(--error); }
+            50% { border-color: var(--warning); }
+        }
+        
+        .risk-level {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .risk-banner.ok .risk-level { color: var(--accent); }
+        .risk-banner.warning .risk-level { color: var(--warning); }
+        .risk-banner.danger .risk-level, .risk-banner.critical .risk-level { color: var(--error); }
+        
+        .risk-reasons { font-size: 12px; color: var(--text); margin-top: 4px; }
+        .risk-stats { text-align: right; font-size: 11px; color: var(--text-dim); }
+        
+        /* Grid */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+        @media (max-width: 1100px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+        
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px;
+        }
+        .card.warn-glow { border-color: var(--warning); box-shadow: 0 0 12px var(--warning-dim); }
+        .card.bad-glow { border-color: var(--error); box-shadow: 0 0 12px var(--error-dim); }
+        .card.wide { grid-column: span 2; }
+        .card.full { grid-column: span 3; }
+        @media (max-width: 1100px) { .card.full { grid-column: span 2; } }
+        @media (max-width: 700px) { .card.wide, .card.full { grid-column: span 1; } }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .card-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-dim);
+        }
+        
+        .badge {
+            font-size: 9px;
+            padding: 3px 8px;
+            border-radius: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+        .badge.ok { background: var(--accent-dim); color: var(--accent); }
+        .badge.warn { background: var(--warning-dim); color: var(--warning); }
+        .badge.bad { background: var(--error-dim); color: var(--error); }
+        .badge.off { background: var(--border); color: var(--text-dim); }
+        
+        /* Big metric */
+        .big-metric { text-align: center; padding: 6px 0; }
+        .big-val {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 40px;
+            font-weight: 700;
+            line-height: 1;
+        }
+        .big-val.ok { color: var(--accent); }
+        .big-val.warn { color: var(--warning); }
+        .big-val.bad { color: var(--error); }
+        .big-unit { font-size: 14px; color: var(--text-dim); margin-left: 4px; }
+        .big-label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+        
+        /* Chart */
+        .chart-wrap { margin: 10px 0; }
+        .chart {
+            display: flex;
+            align-items: flex-end;
+            height: 50px;
+            gap: 1px;
+            background: var(--bg-card-alt);
+            border-radius: 4px;
+            padding: 4px;
+        }
+        .chart-bar { flex: 1; min-width: 2px; border-radius: 1px 1px 0 0; }
+        .chart-bar.ok { background: var(--accent); opacity: 0.7; }
+        .chart-bar.warn { background: var(--warning); opacity: 0.85; }
+        .chart-bar.bad { background: var(--error); }
+        .chart-labels { display: flex; justify-content: space-between; font-size: 9px; color: var(--text-dim); margin-top: 3px; }
+        
+        /* Mini stats */
+        .mini-stats { display: flex; justify-content: space-around; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+        .mini-stat { text-align: center; }
+        .mini-val { font-size: 12px; font-weight: 600; }
+        .mini-label { font-size: 9px; color: var(--text-dim); text-transform: uppercase; }
+        
+        /* Stat rows */
+        .stat-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #1a1a24; }
+        .stat-row:last-child { border-bottom: none; }
+        .stat-label { font-size: 11px; color: var(--text-dim); }
+        .stat-val { font-size: 12px; font-weight: 600; }
+        .stat-val.ok { color: var(--accent); }
+        .stat-val.warn { color: var(--warning); }
+        .stat-val.bad { color: var(--error); }
+        
+        /* Progress bar */
+        .pbar { height: 5px; background: var(--border); border-radius: 3px; margin-top: 4px; overflow: hidden; }
+        .pbar-fill { height: 100%; border-radius: 3px; }
+        .pbar-fill.ok { background: var(--accent); }
+        .pbar-fill.warn { background: var(--warning); }
+        .pbar-fill.bad { background: var(--error); }
+        
+        /* Channel */
+        .channel-box {
+            background: var(--bg-dark);
+            border: 2px solid var(--accent);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .channel-num {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 42px;
+            font-weight: 700;
+            color: var(--accent);
+            text-shadow: 0 0 20px var(--accent-dim);
+        }
+        .channel-label { font-size: 9px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 2px; }
+        
+        /* Raw Log */
+        .raw-log-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            height: calc(100vh - 180px);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .raw-log-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .raw-log-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-dim);
+        }
+        
+        .raw-log-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .raw-log-controls label {
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+        
+        .raw-log-controls input[type="checkbox"] {
+            margin-right: 4px;
+        }
+        
+        .raw-log-controls select, .raw-log-controls button {
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+        
+        .raw-log-controls button:hover {
+            border-color: var(--accent);
+        }
+        
+        .raw-log {
+            flex: 1;
+            overflow-y: auto;
+            font-size: 11px;
+            padding: 8px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        .raw-log::-webkit-scrollbar { width: 8px; }
+        .raw-log::-webkit-scrollbar-track { background: var(--bg-dark); }
+        .raw-log::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+        .raw-log::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+        
+        .log-entry {
+            padding: 4px 8px;
+            border-radius: 3px;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            display: flex;
+            gap: 8px;
+        }
+        
+        .log-entry:hover { background: var(--bg-card-alt); }
+        .log-entry.ok { border-left: 2px solid var(--accent); }
+        .log-entry.warning { border-left: 2px solid var(--warning); background: var(--warning-dim); }
+        .log-entry.danger, .log-entry.critical { border-left: 2px solid var(--error); background: var(--error-dim); }
+        
+        .log-time { color: var(--text-dim); min-width: 70px; }
+        .log-icon { min-width: 20px; }
+        .log-channel { color: var(--accent); min-width: 60px; }
+        .log-signal { min-width: 90px; }
+        .log-buffer { min-width: 80px; }
+        .log-rate { min-width: 80px; }
+        .log-vbr { min-width: 85px; color: var(--info); }
+        .log-drops { min-width: 70px; }
+        .log-temp { min-width: 50px; }
+        .log-reasons { color: var(--warning); }
+        
+        .log-stats {
+            padding: 8px 16px;
+            border-top: 1px solid var(--border);
+            font-size: 10px;
+            color: var(--text-dim);
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        footer {
+            margin-top: 16px;
+            padding-top: 10px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            color: var(--text-dim);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1><div class="live-dot"></div> YLEM STREAM DIAGNOSTICS</h1>
+        <div class="header-right">
+            <span>Stats range:</span>
+            <select class="time-range-select" id="stats-range" onchange="updateHistoryStats()">
+                <option value="5">5 min</option>
+                <option value="15">15 min</option>
+                <option value="60" selected>1 hour</option>
+                <option value="360">6 hours</option>
+                <option value="1440">24 hours</option>
+            </select>
+            <span>Entries: <span id="total-entries">0</span></span>
+            <span>Last: <span id="last-update">--</span></span>
+        </div>
+    </header>
+    
+    <div class="tabs">
+        <div class="tab active" onclick="showTab('dashboard')">📊 Dashboard</div>
+        <div class="tab" onclick="showTab('rawlog')">📜 Raw Log</div>
+    </div>
+    
+    <!-- Dashboard Tab -->
+    <div id="tab-dashboard" class="tab-content active">
+        <div class="risk-banner ok" id="risk-banner">
+            <div>
+                <div class="risk-level"><span id="risk-icon">✅</span> <span id="risk-text">Stream Healthy</span></div>
+                <div class="risk-reasons" id="risk-reasons"></div>
+            </div>
+            <div class="risk-stats">
+                <div>Low buffer events: <span id="danger-count">0</span></div>
+                <div>Critical events: <span id="critical-count">0</span></div>
+            </div>
+        </div>
+        
+        <div class="grid">
+            <!-- Buffer -->
+            <div class="card" id="buffer-card">
+                <div class="card-header">
+                    <span class="card-title">📦 Buffer Health</span>
+                    <span class="badge ok" id="buffer-badge">OK</span>
+                </div>
+                <div class="big-metric">
+                    <span class="big-val ok" id="buffer-val">--</span><span class="big-unit">sec</span>
+                    <div class="big-label">Current Buffer</div>
+                </div>
+                <div class="chart-wrap">
+                    <div class="chart" id="buffer-chart"></div>
+                    <div class="chart-labels"><span>2m ago</span><span>Now</span></div>
+                </div>
+                <div class="mini-stats">
+                    <div class="mini-stat"><div class="mini-val" id="buf-min">--</div><div class="mini-label">Min</div></div>
+                    <div class="mini-stat"><div class="mini-val" id="buf-avg">--</div><div class="mini-label">Avg</div></div>
+                    <div class="mini-stat"><div class="mini-val" id="buf-max">--</div><div class="mini-label">Max</div></div>
+                </div>
+            </div>
+            
+            <!-- WiFi Signal -->
+            <div class="card" id="wifi-card">
+                <div class="card-header">
+                    <span class="card-title">📶 WiFi Signal</span>
+                    <span class="badge ok" id="wifi-badge">--</span>
+                </div>
+                <div class="big-metric">
+                    <span class="big-val ok" id="wifi-signal">--</span><span class="big-unit">dBm</span>
+                    <div class="big-label">Signal Strength</div>
+                </div>
+                <div class="chart-wrap">
+                    <div class="chart" id="signal-chart"></div>
+                    <div class="chart-labels"><span>2m ago</span><span>Now</span></div>
+                </div>
+                <div class="mini-stats">
+                    <div class="mini-stat"><div class="mini-val" id="sig-min">--</div><div class="mini-label">Min</div></div>
+                    <div class="mini-stat"><div class="mini-val" id="sig-avg">--</div><div class="mini-label">Avg</div></div>
+                    <div class="mini-stat"><div class="mini-val" id="sig-max">--</div><div class="mini-label">Max</div></div>
+                </div>
+            </div>
+            
+            <!-- Bandwidth -->
+            <div class="card" id="bw-card">
+                <div class="card-header">
+                    <span class="card-title">⬇️ Download Rate</span>
+                    <span class="badge ok" id="bw-badge">--</span>
+                </div>
+                <div class="big-metric">
+                    <span class="big-val ok" id="rx-rate">--</span><span class="big-unit">Mbps</span>
+                    <div class="big-label">Current Rate</div>
+                </div>
+                <div class="chart-wrap">
+                    <div class="chart" id="bw-chart"></div>
+                    <div class="chart-labels"><span>2m ago</span><span>Now</span></div>
+                </div>
+                <div class="mini-stats">
+                    <div class="mini-stat"><div class="mini-val" id="bw-min">--</div><div class="mini-label">Min</div></div>
+                    <div class="mini-stat"><div class="mini-val" id="bw-avg">--</div><div class="mini-label">Avg</div></div>
+                    <div class="mini-stat"><div class="mini-val" id="bw-max">--</div><div class="mini-label">Max</div></div>
+                </div>
+            </div>
+            
+            <!-- CRT Pi -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">📺 CRT Pi</span>
+                    <span class="badge off" id="pi-badge">Offline</span>
+                </div>
+                <div class="channel-box">
+                    <div class="channel-num" id="channel">--</div>
+                    <div class="channel-label">Channel</div>
+                </div>
+                <div class="stat-row"><span class="stat-label">Dropped Frames</span><span class="stat-val" id="drops">--</span></div>
+                <div class="stat-row"><span class="stat-label">New Drops</span><span class="stat-val" id="new-drops">0</span></div>
+                <div class="stat-row"><span class="stat-label">Buffering</span><span class="stat-val" id="buffering">--</span></div>
+                <div class="stat-row"><span class="stat-label">Video Bitrate</span><span class="stat-val" id="video-bitrate">--</span></div>
+            </div>
+            
+            <!-- WiFi Details -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">📡 WiFi Details</span>
+                </div>
+                <div class="stat-row"><span class="stat-label">Network</span><span class="stat-val" id="essid">--</span></div>
+                <div class="stat-row"><span class="stat-label">Link Quality</span><span class="stat-val" id="quality">--</span></div>
+                <div class="stat-row"><span class="stat-label">WiFi Bitrate</span><span class="stat-val" id="bitrate">--</span></div>
+                <div class="stat-row"><span class="stat-label">TX Retries</span><span class="stat-val" id="retries">--</span></div>
+                <div class="stat-row"><span class="stat-label">Retries/sec</span><span class="stat-val" id="retries-sec">--</span></div>
+                <div class="stat-row"><span class="stat-label">Frequency</span><span class="stat-val" id="freq">--</span></div>
+            </div>
+            
+            <!-- Pi System -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">🌡️ Pi System</span>
+                    <span class="badge" id="sys-badge">--</span>
+                </div>
+                <div class="stat-row"><span class="stat-label">CPU Temp</span><span class="stat-val" id="temp">--</span></div>
+                <div class="pbar"><div class="pbar-fill ok" id="temp-bar" style="width:0%"></div></div>
+                <div class="stat-row" style="margin-top:8px"><span class="stat-label">Memory</span><span class="stat-val" id="mem">--</span></div>
+                <div class="pbar"><div class="pbar-fill ok" id="mem-bar" style="width:0%"></div></div>
+                <div class="stat-row" style="margin-top:8px"><span class="stat-label">Throttle</span><span class="stat-val" id="throttle">--</span></div>
+                <div class="stat-row"><span class="stat-label">Uptime</span><span class="stat-val" id="uptime">--</span></div>
+            </div>
+            
+            <!-- Server -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">🖥️ Server</span>
+                    <span class="badge" id="server-badge">--</span>
+                </div>
+                <div class="stat-row"><span class="stat-label">CPU</span><span class="stat-val" id="srv-cpu">--</span></div>
+                <div class="stat-row"><span class="stat-label">Memory</span><span class="stat-val" id="srv-mem">--</span></div>
+                <div class="stat-row"><span class="stat-label">ErsatzTV</span><span class="stat-val" id="ersatz">--</span></div>
+                <div class="stat-row"><span class="stat-label">NPM</span><span class="stat-val" id="npm">--</span></div>
+                <div class="stat-row"><span class="stat-label">Ping to Pi</span><span class="stat-val" id="ping">--</span></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Raw Log Tab -->
+    <div id="tab-rawlog" class="tab-content">
+        <div class="raw-log-container">
+            <div class="raw-log-header">
+                <div class="raw-log-title">📜 Raw Stream Log (24hr History)</div>
+                <div class="raw-log-controls">
+                    <label><input type="checkbox" id="auto-scroll" checked> Auto-scroll</label>
+                    <label><input type="checkbox" id="show-ok" checked> Show OK</label>
+                    <label><input type="checkbox" id="show-warnings" checked> Show Warnings</label>
+                    <select id="log-limit">
+                        <option value="100">Last 100</option>
+                        <option value="500">Last 500</option>
+                        <option value="1000">Last 1000</option>
+                        <option value="5000">Last 5000</option>
+                    </select>
+                    <button onclick="refreshLog()">Refresh</button>
+                    <button onclick="exportLog()">Export CSV</button>
+                </div>
+            </div>
+            <div class="raw-log" id="raw-log">
+                <div style="color: var(--text-dim); text-align: center; padding: 40px;">
+                    Loading log data...
+                </div>
+            </div>
+            <div class="log-stats">
+                <span>Showing <span id="showing-count">0</span> of <span id="total-count">0</span> entries</span>
+                <span>Oldest entry: <span id="oldest-entry">--</span></span>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <span>Ylem Diagnostics v2</span>
+        <span>YlemPi → [HOST_IP]</span>
+    </footer>
+    
+    <script>
+        // === STATE ===
+        const HIST_LEN = 60;
+        let bufferHist = [], signalHist = [], bwHist = [];
+        let rawLogData = [];
+        let activeTab = 'dashboard';
+        
+        const BUFFER_DANGER = 3.0, BUFFER_CRIT = 1.5, SIG_WEAK = -70, SIG_BAD = -75;
+        
+        // === TAB SWITCHING ===
+        function showTab(tab) {
+            activeTab = tab;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelector(`.tab[onclick="showTab('${tab}')"]`).classList.add('active');
+            document.getElementById('tab-' + tab).classList.add('active');
+            
+            if (tab === 'rawlog') {
+                refreshLog();
+            }
+        }
+        
+        // === HELPERS ===
+        function cls(type, val) {
+            if (val === null || val === undefined) return 'ok';
+            if (type === 'buffer') return val < BUFFER_CRIT ? 'bad' : val < BUFFER_DANGER ? 'warn' : 'ok';
+            if (type === 'signal') return val < SIG_BAD ? 'bad' : val < SIG_WEAK ? 'warn' : 'ok';
+            if (type === 'bw') return val < 3 ? 'bad' : val < 5 ? 'warn' : 'ok';
+            return 'ok';
+        }
+        
+        function setBadge(id, text, status) {
+            const el = document.getElementById(id);
+            if (el) { el.textContent = text; el.className = 'badge ' + status; }
+        }
+        
+        function setGlow(id, status) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.classList.remove('warn-glow', 'bad-glow');
+                if (status === 'warn') el.classList.add('warn-glow');
+                else if (status === 'bad') el.classList.add('bad-glow');
+            }
+        }
+        
+        function formatTime(ts) {
+            return new Date(ts * 1000).toLocaleTimeString();
+        }
+        
+        function formatDateTime(ts) {
+            return new Date(ts * 1000).toLocaleString();
+        }
+        
+        function formatUptime(s) {
+            if (!s) return '--';
+            const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
+            return h > 0 ? h + 'h ' + m + 'm' : m + 'm';
+        }
+        
+        function renderChart(id, data, maxVal, type) {
+            const el = document.getElementById(id);
+            if (!el || !data.length) return;
+            el.innerHTML = data.map(v => {
+                const h = v !== null ? Math.max(3, Math.min(100, (type === 'signal' ? (v + 90) / 60 : v / maxVal) * 100)) : 3;
+                return `<div class="chart-bar ${cls(type, v)}" style="height:${h}%"></div>`;
+            }).join('');
+        }
+        
+        // === RAW LOG ===
+        async function refreshLog() {
+            const limit = parseInt(document.getElementById('log-limit').value);
+            try {
+                const res = await fetch(`/api/rawlog?limit=${limit}`);
+                const data = await res.json();
+                rawLogData = data.entries;
+                renderLog();
+                document.getElementById('total-count').textContent = data.total.toLocaleString();
+                document.getElementById('total-entries').textContent = data.total.toLocaleString();
+                
+                if (data.entries.length > 0) {
+                    const oldest = data.entries[data.entries.length - 1];
+                    document.getElementById('oldest-entry').textContent = formatDateTime(oldest.timestamp);
+                }
+            } catch (e) {
+                console.error('Failed to load log:', e);
+            }
+        }
+        
+        function renderLog() {
+            const container = document.getElementById('raw-log');
+            const showOk = document.getElementById('show-ok').checked;
+            const showWarnings = document.getElementById('show-warnings').checked;
+            
+            let filtered = rawLogData.filter(e => {
+                if (e.risk_level === 'ok' && !showOk) return false;
+                if ((e.risk_level === 'warning' || e.risk_level === 'danger' || e.risk_level === 'critical') && !showWarnings) return false;
+                return true;
+            });
+            
+            document.getElementById('showing-count').textContent = filtered.length.toLocaleString();
+            
+            if (filtered.length === 0) {
+                container.innerHTML = '<div style="color: var(--text-dim); text-align: center; padding: 40px;">No entries match filter</div>';
+                return;
+            }
+            
+            container.innerHTML = filtered.map(e => {
+                const time = formatTime(e.timestamp);
+                const reasons = e.risk_reasons?.length ? e.risk_reasons.join(', ') : '';
+                const vbr = e.video_bitrate_kbps ? e.video_bitrate_kbps + 'kbps' : '--';
+                return `<div class="log-entry ${e.risk_level}">
+                    <span class="log-time">${time}</span>
+                    <span class="log-icon">${e.icon}</span>
+                    <span class="log-channel">Ch:${e.channel}</span>
+                    <span class="log-signal">📶 ${e.signal_dbm || '--'}dBm ${e.quality_pct || '--'}%</span>
+                    <span class="log-buffer">📦 ${e.buffer_sec?.toFixed(1) || '--'}s</span>
+                    <span class="log-rate">⬇️ ${e.rx_rate_mbps?.toFixed(1) || '--'}Mbps</span>
+                    <span class="log-vbr">🎬 ${vbr}</span>
+                    <span class="log-drops">Drop:${e.dropped_frames ?? '--'}</span>
+                    <span class="log-temp">🌡️ ${e.cpu_temp || '--'}°</span>
+                    ${reasons ? `<span class="log-reasons">⚠️ ${reasons}</span>` : ''}
+                </div>`;
+            }).join('');
+            
+            if (document.getElementById('auto-scroll').checked) {
+                container.scrollTop = 0;  // Newest at top
+            }
+        }
+        
+        function exportLog() {
+            const csv = ['Timestamp,Channel,Signal_dBm,Quality_%,Buffer_sec,Rate_Mbps,Drops,Temp_C,Risk,Reasons'];
+            rawLogData.forEach(e => {
+                csv.push([
+                    new Date(e.timestamp * 1000).toISOString(),
+                    e.channel,
+                    e.signal_dbm || '',
+                    e.quality_pct || '',
+                    e.buffer_sec?.toFixed(1) || '',
+                    e.rx_rate_mbps?.toFixed(2) || '',
+                    e.dropped_frames ?? '',
+                    e.cpu_temp || '',
+                    e.risk_level,
+                    `"${(e.risk_reasons || []).join('; ')}"`
+                ].join(','));
+            });
+            
+            const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ylem-log-${new Date().toISOString().slice(0,10)}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        // Filter change handlers
+        document.getElementById('show-ok').addEventListener('change', renderLog);
+        document.getElementById('show-warnings').addEventListener('change', renderLog);
+        document.getElementById('log-limit').addEventListener('change', refreshLog);
+        
+        // === HISTORY STATS ===
+        async function updateHistoryStats() {
+            const minutes = document.getElementById('stats-range').value;
+            try {
+                const res = await fetch(`/api/history/stats?minutes=${minutes}`);
+                const data = await res.json();
+                
+                // Update buffer stats
+                if (data.buffer.min !== undefined) {
+                    document.getElementById('buf-min').textContent = data.buffer.min + 's';
+                    document.getElementById('buf-avg').textContent = data.buffer.avg + 's';
+                    document.getElementById('buf-max').textContent = data.buffer.max + 's';
+                }
+                
+                // Update signal stats  
+                if (data.signal.min !== undefined) {
+                    document.getElementById('sig-min').textContent = data.signal.min + ' dBm';
+                    document.getElementById('sig-avg').textContent = data.signal.avg + ' dBm';
+                    document.getElementById('sig-max').textContent = data.signal.max + ' dBm';
+                }
+                
+                // Update bandwidth stats
+                if (data.bandwidth.min !== undefined) {
+                    document.getElementById('bw-min').textContent = data.bandwidth.min + ' Mbps';
+                    document.getElementById('bw-avg').textContent = data.bandwidth.avg + ' Mbps';
+                    document.getElementById('bw-max').textContent = data.bandwidth.max + ' Mbps';
+                }
+                
+            } catch (e) {
+                console.error('Failed to load history stats:', e);
+            }
+        }
+        
+        // === DASHBOARD UPDATE ===
+        async function update() {
+            try {
+                const res = await fetch('/api/stats');
+                const data = await res.json();
+                const now = Date.now() / 1000;
+                const pi = data.pi || {};
+                const piOk = now - (pi.received_at || 0) < 15;
+                
+                if (piOk) {
+                    setBadge('pi-badge', 'Online', 'ok');
+                    
+                    const path = pi.mpv?.path || '';
+                    const m = path.match(/\/channel\/(\d+)/);
+                    document.getElementById('channel').textContent = m ? m[1] : '--';
+                    
+                    // Buffer
+                    const buf = pi.mpv?.cache_duration_sec;
+                    const bufCls = cls('buffer', buf);
+                    document.getElementById('buffer-val').textContent = buf !== undefined ? buf.toFixed(1) : '--';
+                    document.getElementById('buffer-val').className = 'big-val ' + bufCls;
+                    setBadge('buffer-badge', buf < BUFFER_CRIT ? 'CRITICAL' : buf < BUFFER_DANGER ? 'LOW' : 'OK', bufCls);
+                    setGlow('buffer-card', bufCls);
+                    bufferHist.push(buf); if (bufferHist.length > HIST_LEN) bufferHist.shift();
+                    renderChart('buffer-chart', bufferHist, 15, 'buffer');
+                    
+                    // Signal
+                    const wifi = pi.wifi || {};
+                    const sig = wifi.signal_dbm;
+                    const sigCls = cls('signal', sig);
+                    document.getElementById('wifi-signal').textContent = sig !== undefined ? sig : '--';
+                    document.getElementById('wifi-signal').className = 'big-val ' + sigCls;
+                    const sigTxt = sig >= -50 ? 'Excellent' : sig >= -60 ? 'Good' : sig >= -70 ? 'Fair' : sig >= -80 ? 'Weak' : 'Poor';
+                    setBadge('wifi-badge', sigTxt, sigCls);
+                    setGlow('wifi-card', sigCls);
+                    signalHist.push(sig); if (signalHist.length > HIST_LEN) signalHist.shift();
+                    renderChart('signal-chart', signalHist, 60, 'signal');
+                    
+                    // Rates for various stats
+                    const rates = pi.rates || {};
+                    
+                    document.getElementById('essid').textContent = wifi.essid || '--';
+                    document.getElementById('quality').textContent = wifi.link_quality_pct ? wifi.link_quality_pct + '%' : '--';
+                    document.getElementById('bitrate').textContent = wifi.bitrate_mbps ? wifi.bitrate_mbps + ' Mbps' : '--';
+                    document.getElementById('retries').textContent = wifi.tx_retries?.toLocaleString() || '--';
+                    document.getElementById('retries-sec').textContent = rates.retries_per_sec !== undefined ? rates.retries_per_sec + '/s' : '--';
+                    document.getElementById('freq').textContent = wifi.frequency_ghz ? wifi.frequency_ghz + ' GHz' : '--';
+                    
+                    // Bandwidth
+                    const rx = rates.rx_rate_mbps;
+                    const bwCls = cls('bw', rx);
+                    document.getElementById('rx-rate').textContent = rx !== undefined ? rx.toFixed(1) : '--';
+                    document.getElementById('rx-rate').className = 'big-val ' + bwCls;
+                    setBadge('bw-badge', rx < 3 ? 'Low' : rx < 5 ? 'Fair' : 'Good', bwCls);
+                    setGlow('bw-card', bwCls);
+                    bwHist.push(rx || 0); if (bwHist.length > HIST_LEN) bwHist.shift();
+                    renderChart('bw-chart', bwHist, 15, 'bw');
+                    
+                    // Playback
+                    const mpv = pi.mpv || {};
+                    document.getElementById('drops').textContent = mpv.dropped_frames !== undefined ? mpv.dropped_frames : '--';
+                    const nd = rates.new_drops || 0;
+                    document.getElementById('new-drops').textContent = nd > 0 ? '+' + nd : '0';
+                    document.getElementById('new-drops').className = 'stat-val ' + (nd > 0 ? 'warn' : 'ok');
+                    const buffering = mpv.buffering;
+                    document.getElementById('buffering').textContent = buffering ? 'YES!' : 'No';
+                    document.getElementById('buffering').className = 'stat-val ' + (buffering ? 'bad' : 'ok');
+                    
+                    // Video bitrate received
+                    const vbr = mpv.video_bitrate_mbps;
+                    if (vbr !== undefined && vbr !== null) {
+                        document.getElementById('video-bitrate').textContent = (vbr * 1000).toFixed(0) + ' kbps';
+                    } else {
+                        document.getElementById('video-bitrate').textContent = '--';
+                    }
+                    
+                    // System
+                    const sys = pi.system || {};
+                    const temp = sys.cpu_temp_c;
+                    document.getElementById('temp').textContent = temp ? temp + '°C' : '--';
+                    document.getElementById('temp-bar').style.width = temp ? (temp / 85 * 100) + '%' : '0%';
+                    document.getElementById('temp-bar').className = 'pbar-fill ' + (temp > 75 ? 'bad' : temp > 65 ? 'warn' : 'ok');
+                    
+                    const mem = sys.mem_pct;
+                    document.getElementById('mem').textContent = mem ? mem + '%' : '--';
+                    document.getElementById('mem-bar').style.width = mem ? mem + '%' : '0%';
+                    document.getElementById('mem-bar').className = 'pbar-fill ' + (mem > 85 ? 'bad' : mem > 70 ? 'warn' : 'ok');
+                    
+                    const thr = sys.throttled_now, uv = sys.undervolt_now;
+                    document.getElementById('throttle').textContent = thr ? '🔥 THROTTLED' : uv ? '⚡ UNDERVOLT' : 'OK';
+                    document.getElementById('throttle').className = 'stat-val ' + (thr || uv ? 'bad' : 'ok');
+                    setBadge('sys-badge', thr ? 'Throttled' : temp > 70 ? 'Hot' : 'OK', thr ? 'bad' : temp > 70 ? 'warn' : 'ok');
+                    document.getElementById('uptime').textContent = formatUptime(sys.uptime_sec);
+                    
+                    // Risk
+                    const risk = rates.risk_level || 'ok';
+                    const reasons = rates.risk_reasons || [];
+                    document.getElementById('risk-banner').className = 'risk-banner ' + risk;
+                    const icons = {ok:'✅', warning:'⚠️', danger:'🟠', critical:'🔴'};
+                    const texts = {ok:'Stream Healthy', warning:'Minor Issues', danger:'Pixelation Risk!', critical:'PIXELATION LIKELY!'};
+                    document.getElementById('risk-icon').textContent = icons[risk] || '?';
+                    document.getElementById('risk-text').textContent = texts[risk] || 'Unknown';
+                    document.getElementById('risk-reasons').textContent = reasons.join(' • ');
+                    document.getElementById('danger-count').textContent = rates.buffer_danger_count || 0;
+                    document.getElementById('critical-count').textContent = rates.buffer_critical_count || 0;
+                } else {
+                    setBadge('pi-badge', 'Offline', 'off');
+                    document.getElementById('channel').textContent = '--';
+                    document.getElementById('risk-banner').className = 'risk-banner warning';
+                    document.getElementById('risk-icon').textContent = '❓';
+                    document.getElementById('risk-text').textContent = 'Pi Offline';
+                    document.getElementById('risk-reasons').textContent = 'No data from reporter';
+                }
+                
+                // Server
+                const srv = data.server || {};
+                document.getElementById('srv-cpu').textContent = srv.cpu_percent !== undefined ? srv.cpu_percent.toFixed(0) + '%' : '--';
+                document.getElementById('srv-mem').textContent = srv.memory_percent !== undefined ? srv.memory_percent.toFixed(0) + '%' : '--';
+                document.getElementById('ersatz').textContent = srv.ersatztv_running ? 'Running' : 'Not Found';
+                document.getElementById('ersatz').className = 'stat-val ' + (srv.ersatztv_running ? 'ok' : 'bad');
+                
+                const docker = data.docker || {};
+                document.getElementById('npm').textContent = docker.npm_healthy ? 'Healthy' : 'Down';
+                document.getElementById('npm').className = 'stat-val ' + (docker.npm_healthy ? 'ok' : 'bad');
+                setBadge('server-badge', srv.cpu_percent > 80 ? 'Busy' : 'OK', srv.cpu_percent > 80 ? 'warn' : 'ok');
+                
+                const net = data.network || {};
+                document.getElementById('ping').textContent = net.pi_latency_ms ? net.pi_latency_ms.toFixed(0) + ' ms' : '--';
+                
+                document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
+            } catch (e) { console.error('Update failed:', e); }
+        }
+        
+        // Start
+        update();
+        updateHistoryStats();
+        setInterval(update, 2000);
+        setInterval(updateHistoryStats, 10000);  // Update stats every 10 seconds
+        
+        // Refresh raw log every 10 seconds if on that tab
+        setInterval(() => {
+            if (activeTab === 'rawlog') refreshLog();
+        }, 10000);
+    </script>
+</body>
+</html>

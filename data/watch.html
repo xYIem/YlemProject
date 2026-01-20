@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ylem TV</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            background-color: #000;
+            color: #fff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 10px;
+        }
+        #video-container {
+            width: 100%;
+            max-width: 1280px;
+            margin: 0 auto;
+            background: #111;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        #video {
+            width: 100%;
+            height: auto;
+            display: block;
+            background: #000;
+        }
+        .controls {
+            text-align: center;
+            margin: 10px auto;
+            max-width: 1280px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 16px;
+            background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);
+            color: #fff;
+            text-decoration: none;
+            border-radius: 6px;
+            border: 1px solid #444;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        .button:hover {
+            background: linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 100%);
+            border-color: #666;
+        }
+        #status {
+            text-align: center;
+            padding: 12px;
+            margin: 10px auto;
+            max-width: 1280px;
+            background: #111;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+        .status-good { color: #4f4; }
+        .status-warn { color: #ff4; }
+        .status-error { color: #f44; }
+        .status-info { color: #4af; }
+        
+        #stats {
+            background: #111;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 10px auto;
+            max-width: 1280px;
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 12px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 8px;
+        }
+        .stat-card {
+            background: #1a1a1a;
+            padding: 10px;
+            border-radius: 6px;
+            border-left: 3px solid #333;
+        }
+        .stat-card.good { border-left-color: #4f4; }
+        .stat-card.warn { border-left-color: #ff4; }
+        .stat-card.error { border-left-color: #f44; }
+        .stat-label {
+            color: #888;
+            font-size: 10px;
+            text-transform: uppercase;
+            margin-bottom: 3px;
+        }
+        .stat-value {
+            font-size: 16px;
+            font-weight: 600;
+        }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <a href="/" class="button">← Channels</a>
+        <button class="button" onclick="forceReload()">🔄 Reload</button>
+        <button class="button" onclick="toggleStats()">📊 Stats</button>
+    </div>
+    
+    <div id="status" class="status-info">Loading...</div>
+    
+    <div id="video-container">
+        <video id="video" controls playsinline autoplay></video>
+    </div>
+    
+    <div id="stats" class="hidden"></div>
+
+    <script>
+        // ==============================================
+        // CONFIGURATION
+        // ==============================================
+        const CONFIG = {
+            // Stream through nginx proxy (same domain, protected by auth)
+            STREAM_BASE: '',  // Empty = same origin
+            
+            // Channel mappings: URL path -> ErsatzTV session ID
+            CHANNELS: {
+                '/ch1000': '1000',
+                '/ch1001': '1001',
+                '/ch2000': '2000',
+                '/ch2001': '2001',
+                '/ch2002': '2002',
+                // Add more channels here:
+            }
+        };
+
+        // ==============================================
+        // STATE
+        // ==============================================
+        const state = {
+            hls: null,
+            statsInterval: null,
+            bufferCount: 0,
+            fragTimes: [],
+            showStats: false
+        };
+
+        const $ = id => document.getElementById(id);
+        const video = $('video');
+        const status = $('status');
+        const statsDiv = $('stats');
+
+        // ==============================================
+        // GET CHANNEL FROM URL
+        // ==============================================
+        function getChannelId() {
+            const path = window.location.pathname;
+            
+            // Check direct channel mapping
+            if (CONFIG.CHANNELS[path]) {
+                return CONFIG.CHANNELS[path];
+            }
+            
+            // Check for ?ch= parameter
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('ch')) {
+                return params.get('ch');
+            }
+            
+            // Check for /chXXXX pattern
+            const match = path.match(/\/ch(\d+)/);
+            if (match) {
+                return match[1];
+            }
+            
+            return null;
+        }
+
+        function getStreamUrl() {
+            const channelId = getChannelId();
+            if (!channelId) return null;
+            return `${CONFIG.STREAM_BASE}/iptv/session/${channelId}/hls.m3u8`;
+        }
+
+        // ==============================================
+        // UI
+        // ==============================================
+        function setStatus(msg, type = 'info') {
+            status.textContent = msg;
+            status.className = `status-${type}`;
+        }
+
+        function toggleStats() {
+            state.showStats = !state.showStats;
+            statsDiv.classList.toggle('hidden', !state.showStats);
+        }
+
+        function updateStats() {
+            if (!state.showStats || !state.hls || !video) return;
+            
+            let bufferLen = 0;
+            const buffered = video.buffered;
+            for (let i = 0; i < buffered.length; i++) {
+                if (buffered.start(i) <= video.currentTime && video.currentTime <= buffered.end(i)) {
+                    bufferLen = buffered.end(i) - video.currentTime;
+                    break;
+                }
+            }
+            
+            const levels = state.hls.levels || [];
+            const lvl = state.hls.currentLevel >= 0 ? levels[state.hls.currentLevel] : null;
+            const quality = lvl ? `${lvl.height}p` : '—';
+            const bitrate = lvl ? `${Math.round(lvl.bitrate / 1000)}k` : '—';
+            
+            const avgFrag = state.fragTimes.length > 0
+                ? Math.round(state.fragTimes.slice(-10).reduce((a, t) => a + t, 0) / Math.min(10, state.fragTimes.length))
+                : 0;
+            
+            const bufClass = bufferLen < 5 ? 'error' : bufferLen < 15 ? 'warn' : 'good';
+            const fragClass = avgFrag > 2000 ? 'error' : avgFrag > 1000 ? 'warn' : 'good';
+            
+            statsDiv.innerHTML = `
+                <div class="stat-card ${bufClass}">
+                    <div class="stat-label">Buffer</div>
+                    <div class="stat-value">${bufferLen.toFixed(1)}s</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Quality</div>
+                    <div class="stat-value">${quality}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Bitrate</div>
+                    <div class="stat-value">${bitrate}</div>
+                </div>
+                <div class="stat-card ${fragClass}">
+                    <div class="stat-label">Seg Load</div>
+                    <div class="stat-value">${avgFrag}ms</div>
+                </div>
+                <div class="stat-card ${state.bufferCount > 3 ? 'error' : state.bufferCount > 0 ? 'warn' : 'good'}">
+                    <div class="stat-label">Buffers</div>
+                    <div class="stat-value">${state.bufferCount}</div>
+                </div>
+            `;
+        }
+
+        // ==============================================
+        // PLAYER
+        // ==============================================
+        function forceReload() {
+            if (state.hls) state.hls.destroy();
+            state.bufferCount = 0;
+            state.fragTimes = [];
+            initPlayer();
+        }
+
+        function initPlayer() {
+            const streamUrl = getStreamUrl();
+            
+            if (!streamUrl) {
+                setStatus('❌ No channel specified', 'error');
+                return;
+            }
+            
+            setStatus('🔄 Connecting...', 'info');
+            console.log('Stream URL:', streamUrl);
+            
+            if (!Hls.isSupported()) {
+                if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                    video.src = streamUrl;
+                    video.addEventListener('loadedmetadata', () => {
+                        setStatus('▶️ Playing', 'good');
+                        video.play().catch(() => {});
+                    });
+                    return;
+                }
+                setStatus('❌ HLS not supported', 'error');
+                return;
+            }
+            
+            state.hls = new Hls({
+                debug: false,
+                enableWorker: true,
+                maxBufferLength: 30,
+                maxMaxBufferLength: 60,
+                maxBufferSize: 60 * 1000 * 1000,
+                liveSyncDurationCount: 3,
+                liveMaxLatencyDurationCount: 6,
+                liveDurationInfinity: true,
+                manifestLoadingTimeOut: 10000,
+                manifestLoadingMaxRetry: 3,
+                levelLoadingTimeOut: 10000,
+                levelLoadingMaxRetry: 3,
+                fragLoadingTimeOut: 20000,
+                fragLoadingMaxRetry: 3,
+            });
+            
+            state.hls.on(Hls.Events.MANIFEST_PARSED, (e, data) => {
+                setStatus('▶️ Playing', 'good');
+                video.play().catch(() => setStatus('⏸️ Tap to play', 'warn'));
+                state.statsInterval = setInterval(updateStats, 1000);
+            });
+            
+            state.hls.on(Hls.Events.FRAG_LOADED, (e, data) => {
+                const time = Math.round(data.stats.loading.end - data.stats.loading.start);
+                state.fragTimes.push(time);
+                if (state.fragTimes.length > 50) state.fragTimes.shift();
+            });
+            
+            state.hls.on(Hls.Events.ERROR, (e, data) => {
+                console.error('HLS Error:', data);
+                if (data.fatal) {
+                    setStatus(`❌ ${data.details}`, 'error');
+                    if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                        setTimeout(() => state.hls.startLoad(), 2000);
+                    } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+                        state.hls.recoverMediaError();
+                    }
+                }
+            });
+            
+            video.addEventListener('waiting', () => {
+                state.bufferCount++;
+                setStatus(`⏳ Buffering (#${state.bufferCount})`, 'warn');
+            });
+            
+            video.addEventListener('playing', () => {
+                setStatus('▶️ Playing', 'good');
+            });
+            
+            state.hls.loadSource(streamUrl);
+            state.hls.attachMedia(video);
+        }
+
+        // ==============================================
+        // INIT
+        // ==============================================
+        initPlayer();
+        
+        window.addEventListener('beforeunload', () => {
+            if (state.hls) state.hls.destroy();
+            if (state.statsInterval) clearInterval(state.statsInterval);
+        });
+    </script>
+</body>
+</html>

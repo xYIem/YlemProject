@@ -1,0 +1,240 @@
+/**
+ * Ylem Leaderboard CSS v2
+ * Styles for game tabs, category tabs, filters, entries
+ */
+
+.leaderboard-btn {
+    color: #fbbf24;
+    border-color: rgba(251, 191, 36, 0.3);
+}
+
+.leaderboard-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.leaderboard-overlay.hidden {
+    display: none;
+}
+
+.leaderboard-content {
+    background: var(--bg-primary);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    max-width: 440px;
+    width: 100%;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--bg-elevated);
+}
+
+.leaderboard-title {
+    font-size: 1.4rem;
+    font-weight: 900;
+    text-align: center;
+    margin-bottom: 12px;
+    color: #fbbf24;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+/* Game Tabs (top level - Boggle, future games) */
+.leaderboard-game-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+    justify-content: center;
+}
+
+.leaderboard-game-tab {
+    padding: 8px 16px;
+    background: var(--bg-secondary);
+    border: 2px solid var(--bg-elevated);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: var(--font-main);
+}
+
+.leaderboard-game-tab.active {
+    background: rgba(251, 191, 36, 0.15);
+    border-color: #fbbf24;
+    color: #fbbf24;
+}
+
+.leaderboard-game-tab:hover:not(.active) {
+    border-color: var(--text-muted);
+    color: var(--text-primary);
+}
+
+/* Category Tabs (Wins, Top Score, Most Words, Longest) */
+.leaderboard-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 8px;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    padding: 4px;
+}
+
+.leaderboard-tab {
+    flex: 1;
+    padding: 8px 4px;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    font-size: 0.65rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    font-family: var(--font-main);
+}
+
+.leaderboard-tab.active {
+    background: var(--bg-elevated);
+    color: #fbbf24;
+}
+
+.leaderboard-tab:hover:not(.active) {
+    color: var(--text-primary);
+}
+
+/* Filters Row */
+.leaderboard-filter-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.leaderboard-filter-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    min-width: 32px;
+}
+
+.leaderboard-filters {
+    display: flex;
+    gap: 4px;
+    flex: 1;
+}
+
+.leaderboard-filter-grid,
+.leaderboard-filter-diff {
+    flex: 1;
+    padding: 5px 8px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--bg-elevated);
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    font-size: 0.65rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: var(--font-main);
+    text-align: center;
+}
+
+.leaderboard-filter-grid.active,
+.leaderboard-filter-diff.active {
+    background: var(--bg-elevated);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.leaderboard-filter-grid:hover:not(.active),
+.leaderboard-filter-diff:hover:not(.active) {
+    border-color: var(--text-muted);
+    color: var(--text-primary);
+}
+
+/* Leaderboard List */
+.leaderboard-list {
+    flex: 1;
+    overflow-y: auto;
+    margin-bottom: 16px;
+    min-height: 180px;
+    max-height: 45vh;
+}
+
+.leaderboard-entry {
+    display: grid;
+    grid-template-columns: 32px 1fr auto;
+    gap: 8px;
+    padding: 10px;
+    background: var(--bg-secondary);
+    border-radius: var(--radius-sm);
+    margin-bottom: 6px;
+    align-items: center;
+}
+
+.leaderboard-entry.gold {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(251, 191, 36, 0.1));
+    border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.leaderboard-entry.silver {
+    background: linear-gradient(135deg, rgba(192, 192, 192, 0.2), rgba(192, 192, 192, 0.1));
+    border: 1px solid rgba(192, 192, 192, 0.3);
+}
+
+.leaderboard-entry.bronze {
+    background: linear-gradient(135deg, rgba(205, 127, 50, 0.2), rgba(205, 127, 50, 0.1));
+    border: 1px solid rgba(205, 127, 50, 0.3);
+}
+
+.leaderboard-rank {
+    font-weight: 900;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.leaderboard-entry.gold .leaderboard-rank { color: #fbbf24; }
+.leaderboard-entry.silver .leaderboard-rank { color: #c0c0c0; }
+.leaderboard-entry.bronze .leaderboard-rank { color: #cd7f32; }
+
+.leaderboard-name {
+    font-weight: 700;
+    font-size: 0.8rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.leaderboard-value {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 0.8rem;
+    text-align: right;
+    color: var(--accent);
+    white-space: nowrap;
+}
+
+.leaderboard-subtext {
+    display: block;
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-top: 2px;
+}
+
+.leaderboard-empty {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 40px 20px;
+    font-style: italic;
+}

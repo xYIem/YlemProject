@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Ylem Pi Diagnostics Reporter
+Comment=Sends streaming diagnostics to collector
+Exec=/usr/bin/python3 /home/ylem/pi_reporter.py
+Terminal=false
+StartupNotify=false
+X-GNOME-Autostart-enabled=true

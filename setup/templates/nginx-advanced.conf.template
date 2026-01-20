@@ -1,0 +1,76 @@
+# ===========================================
+# YLEM - Nginx Proxy Manager Advanced Config
+# ===========================================
+# Paste this into NPM → Hosts → Edit → Advanced
+# Replace __HOST_IP__ with your actual IP
+# ===========================================
+
+# Serve index.html for root
+location = / {
+    root /data;
+    try_files /index.html =404;
+}
+
+# Serve watch.html for /chXXXX URLs
+location ~ ^/ch\d+$ {
+    root /data;
+    try_files /watch.html =404;
+}
+
+# V2 Game Hub files
+location /v2/ {
+    root /data;
+    try_files $uri $uri/ =404;
+}
+
+# Games hub (clean URL)
+location = /games {
+    root /data;
+    try_files /v2/games.html =404;
+}
+
+# EPG Guide (clean URL)
+location = /guide {
+    root /data;
+    try_files /v2/guide.html =404;
+}
+
+# Redirect old game pages to games hub
+location = /boggle.html {
+    return 301 /games;
+}
+
+# IPTV proxy (streams, logos, images from ErsatzTV)
+location /iptv/ {
+    proxy_pass http://__HOST_IP__:__ERSATZTV_PORT__/iptv/;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header Connection "";
+    proxy_buffering off;
+}
+
+# WebSocket proxy for multiplayer
+location /ws/ {
+    proxy_pass http://__HOST_IP__:__GAME_SERVER_PORT__/;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_read_timeout 86400;
+}
+
+# EPG API proxy (handles ALL /api/epg requests including /logos/)
+location ^~ /api/epg {
+    proxy_pass http://__HOST_IP__:__EPG_SERVER_PORT__;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+}
+
+# Serve static files (must be AFTER /api/ routes)
+location ~ \.(html|css|js|ico|png|jpg|svg|txt|json)$ {
+    root /data;
+    try_files $uri =404;
+}

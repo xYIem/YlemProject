@@ -1,0 +1,312 @@
+/**
+ * Ylem Inventory CSS
+ * Styles for inventory overlay and item earned animation
+ */
+
+/* Inventory Overlay */
+.inv-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1050;
+    padding: 12px;
+    overflow-y: auto;
+}
+
+.inv-overlay.hidden {
+    display: none;
+}
+
+.inv-content {
+    background: linear-gradient(180deg, #1a1a24 0%, #12121a 100%);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    max-width: 600px;
+    max-height: 90vh;
+    width: 100%;
+    border: 2px solid #3d3d50;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+    display: flex;
+    flex-direction: column;
+}
+
+.inv-header {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #3d3d50;
+}
+
+.inv-title {
+    font-size: 1.3rem;
+    font-weight: 900;
+    color: #c9aa71;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+
+.inv-main {
+    display: flex;
+    gap: 16px;
+}
+
+.inv-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 52px);
+    grid-template-rows: repeat(4, 52px);
+    gap: 4px;
+    background: #0a0a0f;
+    padding: 8px;
+    border-radius: var(--radius-md);
+    border: 1px solid #2a2a3a;
+}
+
+.inv-slot {
+    width: 52px;
+    height: 52px;
+    background: linear-gradient(145deg, #1e1e28 0%, #14141c 100%);
+    border: 1px solid #2a2a3a;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: pointer;
+    transition: border-color 0.15s;
+}
+
+.inv-slot:hover {
+    border-color: #4a4a5a;
+}
+
+.inv-slot.has-item {
+    background: linear-gradient(145deg, #252530 0%, #1a1a24 100%);
+}
+
+.inv-slot.selected {
+    border-color: #c9aa71;
+    box-shadow: 0 0 12px rgba(201, 170, 113, 0.4);
+}
+
+/* Rarity borders */
+.inv-slot.rarity-common { border-bottom: 2px solid #9d9d9d; }
+.inv-slot.rarity-uncommon { border-bottom: 2px solid #1eff00; }
+.inv-slot.rarity-rare { border-bottom: 2px solid #ff4444; }
+.inv-slot.rarity-epic { border-bottom: 2px solid #a335ee; }
+.inv-slot.rarity-legendary { border-bottom: 2px solid #ff8000; }
+.inv-slot.rarity-mythic { border-bottom: 2px solid #e6cc80; box-shadow: inset 0 0 15px rgba(230, 204, 128, 0.3); }
+
+.inv-slot-icon {
+    font-size: 1.8rem;
+    filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5));
+}
+
+.inv-slot-count {
+    position: absolute;
+    bottom: 2px;
+    right: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+}
+
+/* Details Panel */
+.inv-details {
+    flex: 1;
+    background: linear-gradient(180deg, #15151d 0%, #0f0f15 100%);
+    border-radius: var(--radius-md);
+    border: 1px solid #2a2a3a;
+    padding: 16px;
+    min-height: 180px;
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.inv-details-empty {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #4a4a5a;
+    font-style: italic;
+}
+
+.inv-details-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #2a2a3a;
+}
+
+.inv-details-icon {
+    font-size: 2.5rem;
+}
+
+.inv-details-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 2px;
+}
+
+.inv-details-name.rarity-common { color: #9d9d9d; }
+.inv-details-name.rarity-uncommon { color: #1eff00; }
+.inv-details-name.rarity-rare { color: #ff4444; }
+.inv-details-name.rarity-epic { color: #a335ee; }
+.inv-details-name.rarity-legendary { color: #ff8000; }
+.inv-details-name.rarity-mythic { color: #e6cc80; text-shadow: 0 0 10px rgba(230, 204, 128, 0.5); }
+
+.inv-details-type {
+    font-size: 0.75rem;
+    color: #6a6a7a;
+    text-transform: uppercase;
+}
+
+.inv-details-stats {
+    margin-bottom: 12px;
+}
+
+.inv-stat {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    padding: 4px 0;
+    border-bottom: 1px solid #1a1a24;
+}
+
+.inv-stat-label { color: #8a8a9a; }
+.inv-stat-value { color: #c9aa71; font-weight: 600; }
+.inv-stat-value.rarity-common { color: #9d9d9d; }
+.inv-stat-value.rarity-uncommon { color: #1eff00; }
+.inv-stat-value.rarity-rare { color: #ff4444; }
+.inv-stat-value.rarity-epic { color: #a335ee; }
+.inv-stat-value.rarity-legendary { color: #ff8000; }
+.inv-stat-value.rarity-mythic { color: #e6cc80; }
+
+.inv-details-lore {
+    font-size: 0.8rem;
+    color: #c9aa71;
+    font-style: italic;
+    line-height: 1.5;
+    padding: 10px;
+    background: rgba(201, 170, 113, 0.05);
+    border-radius: 4px;
+    border-left: 2px solid #4a4030;
+}
+
+.inv-footer {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid #3d3d50;
+    display: flex;
+    justify-content: center;
+}
+
+.inv-close-btn {
+    padding: 12px 32px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--bg-elevated);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: var(--font-main);
+}
+
+.inv-close-btn:hover {
+    border-color: var(--accent);
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+    .inv-main { flex-direction: column; }
+    .inv-grid {
+        grid-template-columns: repeat(5, 48px);
+        grid-template-rows: repeat(4, 48px);
+    }
+    .inv-slot { width: 48px; height: 48px; }
+    .inv-details { min-height: 120px; max-height: 150px; }
+}
+
+/* Item Earned Animation */
+.item-earned-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1200;
+    padding: 20px;
+}
+
+.item-earned-overlay.hidden {
+    display: none;
+}
+
+.item-earned-title {
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: #fbbf24;
+    margin-bottom: 10px;
+}
+
+.item-earned-rolls {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 24px;
+    min-height: 80px;
+}
+
+.item-roll {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    opacity: 0;
+    transform: scale(0) rotate(-180deg);
+    animation: itemDrop 0.5s ease-out forwards;
+}
+
+.item-roll-icon { font-size: 2.5rem; }
+.item-roll-name { font-size: 0.6rem; color: var(--text-muted); text-transform: uppercase; margin-top: 2px; }
+
+.item-roll.rare {
+    animation: itemDropRare 0.7s ease-out forwards;
+}
+
+@keyframes itemDrop {
+    0% { opacity: 0; transform: scale(0) rotate(-180deg); }
+    50% { opacity: 1; transform: scale(1.3) rotate(10deg); }
+    100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+@keyframes itemDropRare {
+    0% { opacity: 0; transform: scale(0) rotate(-180deg); }
+    40% { opacity: 1; transform: scale(1.5) rotate(15deg); }
+    60% { opacity: 1; transform: scale(1.8) rotate(-10deg); text-shadow: 0 0 20px gold; }
+    100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+.item-earned-btn {
+    padding: 14px 32px;
+    background: var(--accent);
+    border: none;
+    border-radius: var(--radius-md);
+    color: white;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: var(--font-main);
+}
+
+.item-earned-btn:hover {
+    background: var(--accent-light);
+}

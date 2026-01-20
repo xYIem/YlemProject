@@ -1,0 +1,4 @@
+# Ylem Installer Build Requirements
+# Install these to build the standalone exe
+
+pyinstaller>=6.0.0

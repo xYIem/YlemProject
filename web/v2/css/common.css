@@ -1,0 +1,327 @@
+/**
+ * Common CSS
+ * Shared variables, base styles, buttons, overlays
+ */
+
+/* ============================================
+   CSS Variables
+   ============================================ */
+:root {
+    /* Backgrounds */
+    --bg-deep: #0f0f13;
+    --bg-primary: #16161d;
+    --bg-secondary: #1e1e27;
+    --bg-elevated: #282833;
+    --bg-hover: #32323f;
+
+    /* Accent Colors */
+    --accent: #f97316;
+    --accent-light: #fb923c;
+    --accent-dark: #ea580c;
+    --accent-glow: rgba(249, 115, 22, 0.35);
+
+    /* Status Colors */
+    --success: #22c55e;
+    --success-glow: rgba(34, 197, 94, 0.3);
+    --danger: #ef4444;
+    --warning: #eab308;
+
+    /* Purple Theme */
+    --purple: #a855f7;
+    --purple-glow: rgba(168, 85, 247, 0.3);
+
+    /* Gold Theme (for items/wager) */
+    --gold: #c9aa71;
+    --gold-dark: #a08050;
+    --gold-glow: rgba(201, 170, 113, 0.3);
+
+    /* Text Colors */
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+
+    /* Fonts */
+    --font-main: 'Nunito', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+
+    /* Border Radius */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
+}
+
+/* ============================================
+   Base Reset & Body
+   ============================================ */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+}
+
+body {
+    font-family: var(--font-main);
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    display: flex;
+}
+
+/* ============================================
+   Main Container
+   ============================================ */
+.main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+}
+
+/* ============================================
+   Screen System
+   ============================================ */
+.screen {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    transition: opacity 0.3s, visibility 0.3s;
+}
+
+.screen.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+/* ============================================
+   Buttons
+   ============================================ */
+.menu-btn {
+    width: 100%;
+    max-width: 280px;
+    padding: 14px 24px;
+    font-family: var(--font-main);
+    font-size: 1rem;
+    font-weight: 700;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+}
+
+.menu-btn:hover {
+    background: var(--bg-hover);
+    transform: translateY(-2px);
+}
+
+.menu-btn:active {
+    transform: translateY(0);
+}
+
+.menu-btn.primary {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+    color: white;
+    box-shadow: 0 4px 15px var(--accent-glow);
+}
+
+.menu-btn.primary:hover {
+    box-shadow: 0 6px 20px var(--accent-glow);
+}
+
+.menu-btn.play-btn {
+    background: linear-gradient(135deg, var(--success) 0%, #16a34a 100%);
+    box-shadow: 0 4px 15px var(--success-glow);
+}
+
+.menu-btn.danger {
+    background: var(--danger);
+}
+
+.menu-btn.exit-btn {
+    background: var(--bg-secondary);
+    border: 1px solid var(--bg-elevated);
+}
+
+/* Small Button Variant */
+.btn-sm {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+    max-width: none;
+    width: auto;
+}
+
+/* ============================================
+   Overlays
+   ============================================ */
+.overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+    text-align: center;
+}
+
+.overlay.hidden {
+    display: none !important;
+}
+
+.overlay-content {
+    background: var(--bg-primary);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    max-width: 400px;
+    width: 100%;
+    border: 1px solid var(--bg-elevated);
+}
+
+.overlay-title {
+    font-size: 1.5rem;
+    font-weight: 900;
+    margin-bottom: 12px;
+    color: var(--text-primary);
+}
+
+.overlay-text {
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+/* ============================================
+   Form Elements
+   ============================================ */
+.input-field {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--bg-secondary);
+    border: 2px solid var(--bg-elevated);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-family: var(--font-main);
+    font-size: 1rem;
+    transition: border-color 0.2s;
+}
+
+.input-field:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.input-field::placeholder {
+    color: var(--text-muted);
+}
+
+/* ============================================
+   Utility Classes
+   ============================================ */
+.hidden {
+    display: none !important;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.text-muted {
+    color: var(--text-muted);
+}
+
+.text-success {
+    color: var(--success);
+}
+
+.text-danger {
+    color: var(--danger);
+}
+
+.text-warning {
+    color: var(--warning);
+}
+
+.text-gold {
+    color: var(--gold);
+}
+
+.mt-1 { margin-top: 8px; }
+.mt-2 { margin-top: 16px; }
+.mt-3 { margin-top: 24px; }
+.mb-1 { margin-bottom: 8px; }
+.mb-2 { margin-bottom: 16px; }
+.mb-3 { margin-bottom: 24px; }
+
+/* ============================================
+   Loading Spinner
+   ============================================ */
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--bg-elevated);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ============================================
+   Session Name Bar
+   ============================================ */
+.session-name-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.85);
+    border-top: 1px solid var(--bg-elevated);
+    padding: 8px 16px;
+    text-align: center;
+    z-index: 100;
+}
+
+.session-name-text {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.session-name-text::before {
+    content: '👤 ';
+}
+
+/* ============================================
+   Responsive
+   ============================================ */
+@media (max-width: 600px) {
+    .screen {
+        padding: 12px;
+    }
+
+    .menu-btn {
+        padding: 12px 20px;
+        font-size: 0.95rem;
+    }
+
+    .overlay-content {
+        padding: 20px;
+    }
+}

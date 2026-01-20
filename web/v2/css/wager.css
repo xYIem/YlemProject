@@ -1,0 +1,331 @@
+/**
+ * Wager CSS
+ * Wager selection, ready check, pot display styles
+ */
+
+/* ============================================
+   Wager Overlay
+   ============================================ */
+.wager-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1100;
+    padding: 12px;
+}
+
+.wager-content {
+    background: linear-gradient(180deg, #1a1a24 0%, #12121a 100%);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    max-width: 700px;
+    width: 100%;
+    border: 2px solid #3d3d50;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+}
+
+.wager-title {
+    text-align: center;
+    font-size: 1.4rem;
+    font-weight: 900;
+    color: var(--gold);
+    margin-bottom: 16px;
+}
+
+/* ============================================
+   Wager Main Layout
+   ============================================ */
+.wager-main {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.wager-section {
+    flex: 1;
+    background: linear-gradient(180deg, #15151d 0%, #0f0f15 100%);
+    border-radius: var(--radius-md);
+    border: 1px solid #2a2a3a;
+    padding: 12px;
+}
+
+.wager-section-title {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    text-align: center;
+}
+
+/* ============================================
+   Wager Grid
+   ============================================ */
+.wager-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+}
+
+.wager-slot {
+    aspect-ratio: 1;
+    background: linear-gradient(145deg, #1e1e28 0%, #14141c 100%);
+    border: 1px solid #2a2a3a;
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    min-height: 40px;
+}
+
+.wager-slot:hover {
+    border-color: #4a4a5a;
+    background: linear-gradient(145deg, #252530 0%, #1a1a24 100%);
+}
+
+.wager-slot.has-item {
+    background: linear-gradient(145deg, #252530 0%, #1a1a24 100%);
+}
+
+.wager-slot.empty {
+    opacity: 0.3;
+    cursor: default;
+}
+
+.wager-slot.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.wager-slot-icon {
+    font-size: 1.2rem;
+}
+
+.wager-slot-count {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+
+/* Rarity Borders */
+.wager-slot.rarity-common { border-bottom: 2px solid #9d9d9d; }
+.wager-slot.rarity-uncommon { border-bottom: 2px solid #1eff00; }
+.wager-slot.rarity-rare { border-bottom: 2px solid #ff4444; }
+.wager-slot.rarity-epic { border-bottom: 2px solid #a335ee; }
+.wager-slot.rarity-legendary { border-bottom: 2px solid #ff8000; }
+.wager-slot.rarity-mythic { border-bottom: 2px solid #e6cc80; }
+
+/* Opponent Section */
+.wager-section.opponent {
+    border-color: var(--purple);
+}
+
+.wager-section.opponent .wager-section-title {
+    color: var(--purple);
+}
+
+/* ============================================
+   Wager Status
+   ============================================ */
+.wager-status {
+    text-align: center;
+    padding: 8px;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.wager-status.confirmed {
+    color: var(--success);
+}
+
+/* ============================================
+   Wager Buttons
+   ============================================ */
+.wager-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.wager-btn {
+    padding: 12px 32px;
+    font-size: 1rem;
+    font-weight: 700;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: var(--font-main);
+}
+
+.wager-btn.confirm {
+    background: var(--success);
+    color: white;
+}
+
+.wager-btn.confirm:hover {
+    background: #16a34a;
+}
+
+.wager-btn.confirm:disabled {
+    background: #1a4d2e;
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.wager-btn.leave {
+    background: var(--bg-elevated);
+    color: var(--text-secondary);
+}
+
+.wager-btn.leave:hover {
+    background: var(--danger);
+    color: white;
+}
+
+.wager-btn.ready {
+    background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+    color: #1a1a24;
+}
+
+.wager-btn.ready:hover {
+    background: linear-gradient(135deg, #d9ba81 0%, #b09060 100%);
+}
+
+.wager-btn.ready:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ============================================
+   Ready Screen
+   ============================================ */
+.ready-content {
+    text-align: center;
+}
+
+.ready-vs {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    margin: 24px 0;
+}
+
+.ready-wager {
+    background: linear-gradient(180deg, #15151d 0%, #0f0f15 100%);
+    border-radius: var(--radius-md);
+    border: 1px solid #2a2a3a;
+    padding: 16px;
+    min-width: 120px;
+}
+
+.ready-wager.opponent {
+    border-color: var(--purple);
+}
+
+.ready-wager-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+
+.ready-wager-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+}
+
+.ready-item {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 0.9rem;
+}
+
+.ready-vs-text {
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: var(--text-muted);
+}
+
+/* ============================================
+   Ready Pot
+   ============================================ */
+.ready-pot {
+    background: linear-gradient(135deg, rgba(201, 170, 113, 0.1) 0%, rgba(201, 170, 113, 0.05) 100%);
+    border: 1px solid rgba(201, 170, 113, 0.3);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    margin: 16px auto;
+    max-width: 300px;
+}
+
+.ready-pot-label {
+    font-size: 0.8rem;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+
+.ready-pot-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+}
+
+/* ============================================
+   Ready Status
+   ============================================ */
+.ready-status {
+    margin: 16px 0;
+    font-size: 0.9rem;
+}
+
+.ready-status .waiting {
+    color: var(--warning);
+}
+
+.ready-status .ready {
+    color: var(--success);
+}
+
+/* ============================================
+   Responsive
+   ============================================ */
+@media (max-width: 600px) {
+    .wager-main {
+        flex-direction: column;
+    }
+    
+    .wager-grid {
+        grid-template-columns: repeat(5, 1fr);
+    }
+    
+    .wager-slot {
+        min-height: 36px;
+    }
+    
+    .wager-slot-icon {
+        font-size: 1rem;
+    }
+    
+    .ready-vs {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .ready-vs-text {
+        font-size: 1.2rem;
+    }
+}

@@ -1,0 +1,46 @@
+# For more options and information see
+# http://rptl.io/configtxt
+
+# --- SYSTEM ---
+dtparam=audio=on
+camera_auto_detect=1
+display_auto_detect=1
+auto_initramfs=1
+
+# --- CRT HARDWARE SETUP ---
+# 1. Enable the TV Output (Physical Port)
+enable_tvout=1
+
+# 2. NTSC Mode (North America/Japan)
+# sdtv_mode=0 is NTSC. Change to 2 for PAL.
+sdtv_mode=0
+sdtv_aspect=1
+
+# 3. Force Analog Connection (Ignore HDMI)
+hdmi_ignore_hotplug=1
+
+# --- GRAPHICS DRIVER ---
+# Load the modern driver with Composite support enabled
+dtoverlay=vc4-kms-v3d,composite=1
+
+# Stop firmware from interfering with our manual config
+disable_fw_kms_setup=1
+
+# --- DESKTOP GEOMETRY ---
+# We force the "Canvas" to be 640x480 (4:3).
+# The margins to fix the cut-off edges are handled in cmdline.txt
+disable_overscan=0
+framebuffer_width=640
+framebuffer_height=480
+
+# --- PERFORMANCE ---
+arm_boost=1
+
+[cm4]
+otg_mode=1
+
+[cm5]
+dtoverlay=dwc2,dr_mode=host
+
+[all]
+dtoverlay=gpio-ir,gpio_pin=17

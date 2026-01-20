@@ -1,0 +1,5 @@
+[Desktop Entry]
+Type=Application
+Name=GE Remote Listener
+Exec=/usr/bin/python3 /home/ylem/tv_control.py
+Terminal=false

@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ylem Game Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;800;900&family=JetBrains+Mono:wght@500;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Shared CSS -->
+    <link rel="stylesheet" href="/v2/css/auth.css">
+    <link rel="stylesheet" href="/v2/css/inventory.css">
+    <link rel="stylesheet" href="/v2/css/leaderboard.css">
+
+    <style>
+        :root {
+            --bg-deep: #0f0f13;
+            --bg-primary: #16161d;
+            --bg-secondary: #1e1e27;
+            --bg-elevated: #282833;
+            --accent: #f97316;
+            --accent-light: #fb923c;
+            --accent-dark: #ea580c;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --font-main: 'Nunito', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html,
+        body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            display: flex;
+        }
+
+        .main {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .home-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            width: 100%;
+            max-width: 320px;
+            text-align: center;
+        }
+
+        .home-title {
+            font-size: 2.5rem;
+            font-weight: 900;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .menu-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 14px 16px;
+            background: var(--bg-primary);
+            border: 1px solid var(--bg-elevated);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-family: var(--font-main);
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .menu-btn:hover {
+            background: var(--bg-secondary);
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        .submenu {
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+            animation: slideDown 0.2s ease;
+        }
+
+        .submenu.open {
+            display: flex;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .submenu-btn {
+            padding: 12px;
+            background: var(--bg-elevated);
+            border: none;
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-family: var(--font-main);
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .submenu-btn:hover {
+            background: var(--accent);
+            color: white;
+        }
+
+        .menu-status {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+
+        /* Game Options Overlay */
+        .game-options-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1001;
+            padding: 20px;
+        }
+
+        .game-options-overlay.hidden {
+            display: none;
+        }
+
+        .game-options-content {
+            background: var(--bg-primary);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            max-width: 380px;
+            width: 100%;
+            text-align: center;
+            border: 1px solid var(--bg-elevated);
+        }
+
+        .game-options-title {
+            font-size: 1.3rem;
+            font-weight: 900;
+            margin-bottom: 16px;
+            color: var(--accent);
+        }
+
+        .game-options-section {
+            margin-bottom: 16px;
+        }
+
+        .game-options-section-title {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .game-options-buttons {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .game-option-btn {
+            padding: 8px 14px;
+            background: var(--bg-secondary);
+            border: 2px solid var(--bg-elevated);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: var(--font-main);
+        }
+
+        .game-option-btn:hover {
+            border-color: var(--accent);
+        }
+
+        .game-option-btn.active {
+            border-color: var(--accent);
+            background: rgba(249, 115, 22, 0.15);
+            color: var(--accent);
+        }
+
+        .game-options-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .game-options-actions .menu-btn {
+            flex: 1;
+        }
+
+        .menu-btn.play-btn {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .menu-btn.play-btn:hover {
+            background: var(--accent-light);
+        }
+    </style>
+</head>
+
+<body>
+    <main class="main">
+        <div class="home-menu">
+            <h1 class="home-title">🎮 YLEM</h1>
+
+            <button class="menu-btn" id="gamesBtn">🎲 Games</button>
+            <div class="submenu" id="gamesSubmenu">
+                <button class="submenu-btn" onclick="showGameOptions()">Boggle</button>
+                <button class="submenu-btn"
+                    onclick="window.location.href='/v2/games/scrabble/lobby.html'">Scrabble</button>
+            </div>
+
+            <button class="menu-btn" id="multiplayerBtn"
+                style="color: #a855f7; border-color: rgba(168, 85, 247, 0.3);">👥 Multiplayer</button>
+            <div class="submenu" id="multiplayerSubmenu">
+                <button class="submenu-btn" onclick="window.location.href='/multiplayer.html'">Boggle</button>
+            </div>
+
+            <button class="menu-btn leaderboard-btn" onclick="collapseAll(); showLeaderboard();">🏆 Leaderboard</button>
+
+            <button class="menu-btn" onclick="collapseAll(); showInventory();"
+                style="color: #22c55e; border-color: rgba(34, 197, 94, 0.3);">💎 Inventory</button>
+
+            <button class="menu-btn" onclick="collapseAll(); showAccountChooser();">👤 Account</button>
+
+            <button class="menu-btn" onclick="window.location.href='/'"
+                style="color: var(--danger); border-color: rgba(239,68,68,0.3);">🚪 Exit</button>
+
+            <div class="menu-status" id="menuStatus">Connecting...</div>
+        </div>
+
+        <!-- Game Options Overlay -->
+        <div class="game-options-overlay hidden" id="gameOptionsOverlay">
+            <div class="game-options-content">
+                <div class="game-options-title">New Game</div>
+
+                <div class="game-options-section">
+                    <div class="game-options-section-title">Grid Size</div>
+                    <div class="game-options-buttons" id="gridSizeOptions">
+                        <button class="game-option-btn active" data-size="4">4×4</button>
+                        <button class="game-option-btn" data-size="5">5×5</button>
+                    </div>
+                </div>
+
+                <div class="game-options-section">
+                    <div class="game-options-section-title">Difficulty</div>
+                    <div class="game-options-buttons" id="difficultyOptions">
+                        <button class="game-option-btn" data-diff="easy">Easy</button>
+                        <button class="game-option-btn active" data-diff="medium">Medium</button>
+                        <button class="game-option-btn" data-diff="hard">Hard</button>
+                        <button class="game-option-btn" data-diff="test">Test</button>
+                    </div>
+                </div>
+
+                <div class="game-options-actions">
+                    <button class="menu-btn" onclick="hideGameOptions()">Cancel</button>
+                    <button class="menu-btn play-btn" onclick="startBoggleGame()">Play!</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Shared JS Modules -->
+    <script src="/v2/js/config.js"></script>
+    <script src="/v2/js/auth.js"></script>
+    <script src="/v2/js/inventory.js"></script>
+    <script src="/v2/js/leaderboard.js"></script>
+
+    <script>
+        // ============================================
+        // Menu Toggles
+        // ============================================
+        function collapseAll() {
+            document.getElementById('gamesSubmenu').classList.remove('open');
+            document.getElementById('multiplayerSubmenu').classList.remove('open');
+        }
+
+        document.getElementById('gamesBtn').onclick = function () {
+            const sub = document.getElementById('gamesSubmenu');
+            const isOpen = sub.classList.contains('open');
+            collapseAll();
+            if (!isOpen) sub.classList.add('open');
+        };
+
+        document.getElementById('multiplayerBtn').onclick = function () {
+            const sub = document.getElementById('multiplayerSubmenu');
+            const isOpen = sub.classList.contains('open');
+            collapseAll();
+            if (!isOpen) sub.classList.add('open');
+        };
+
+        // ============================================
+        // Game Options
+        // ============================================
+        let selectedGridSize = 4;
+        let selectedDifficulty = 'medium';
+
+        function showGameOptions() {
+            collapseAll();
+            // Check if logged in first
+            if (!isAuthenticated()) {
+                showAccountChooser();
+                return;
+            }
+            document.getElementById('gameOptionsOverlay').classList.remove('hidden');
+        }
+
+        function hideGameOptions() {
+            document.getElementById('gameOptionsOverlay').classList.add('hidden');
+        }
+
+        document.getElementById('gridSizeOptions').onclick = function (e) {
+            if (e.target.classList.contains('game-option-btn')) {
+                document.querySelectorAll('#gridSizeOptions .game-option-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                selectedGridSize = parseInt(e.target.dataset.size);
+            }
+        };
+
+        document.getElementById('difficultyOptions').onclick = function (e) {
+            if (e.target.classList.contains('game-option-btn')) {
+                document.querySelectorAll('#difficultyOptions .game-option-btn').forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+                selectedDifficulty = e.target.dataset.diff;
+            }
+        };
+
+        function startBoggleGame() {
+            window.location.href = '/v2/games/boggle/boggle.html?size=' + selectedGridSize + '&diff=' + selectedDifficulty;
+        }
+
+        // ============================================
+        // Init
+        // ============================================
+        initAuth();
+        initInventory();
+        initLeaderboard();
+    </script>
+</body>
+
+</html>
