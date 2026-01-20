@@ -25,8 +25,8 @@ from urllib.error import URLError, HTTPError
 # CONFIGURATION
 # ═══════════════════════════════════════════════════════════════════════════════
 
-GITHUB_USER = "xYlem"
-GITHUB_REPO = "ylem"
+GITHUB_USER = "xYIem"
+GITHUB_REPO = "YlemProject"
 GITHUB_RELEASE_URL = f"https://api.github.com/repos/{GITHUB_USER}/{GITHUB_REPO}/releases/latest"
 GITHUB_RAW_URL = f"https://raw.githubusercontent.com/{GITHUB_USER}/{GITHUB_REPO}/main"
 

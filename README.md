@@ -18,7 +18,7 @@ A personal streaming and multiplayer gaming platform featuring:
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/xYlem/ylem.git
+   git clone https://github.com/xYIem/YlemProject.git
    cd ylem
    ```
 
