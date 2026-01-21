@@ -178,7 +178,7 @@ class YlemInstaller:
         self.progress_frame.pack(fill=tk.X, pady=(0, 15))
         
         self.progress_labels = []
-        steps = ['Components', 'Network', 'Ports', 'Domain', 'Channels', 'Summary', 'Install']
+        steps = ['Components', 'Network', 'Summary', 'Install', 'Setup']
         for i, step in enumerate(steps):
             lbl = ttk.Label(self.progress_frame, text=step, font=('Segoe UI', 8))
             lbl.pack(side=tk.LEFT, expand=True)
@@ -208,13 +208,11 @@ class YlemInstaller:
     def build_pages(self):
         """Define all wizard pages"""
         self.pages = [
-            self.create_components_page,      # 0
-            self.create_network_page,         # 1
-            self.create_ports_page,           # 2
-            self.create_domain_page,          # 3
-            self.create_channels_page,        # 4
-            self.create_summary_page,         # 5
-            self.create_install_page,         # 6
+            self.create_components_page,      # 0 - Select components
+            self.create_network_page,         # 1 - IP, Ports, Domain
+            self.create_summary_page,         # 2 - Review settings
+            self.create_install_page,         # 3 - Download & install
+            self.create_setup_page,           # 4 - NPM setup guide
         ]
     
     def update_progress(self, index):
@@ -267,26 +265,20 @@ class YlemInstaller:
     
     def validate_page(self):
         """Validate current page before proceeding"""
-        if self.current_page == 1:  # Network page
+        if self.current_page == 1:  # Network page (now includes ports and domain)
             if not self.host_ip_var.get():
                 messagebox.showerror("Error", "Please enter your local IP address")
                 return False
             self.config['host_ip'] = self.host_ip_var.get()
             self.config['ersatztv_port'] = self.ersatztv_port_var.get()
-        elif self.current_page == 2:  # Ports page
+            # Ports
             for key, var in self.port_vars.items():
                 self.config[key] = var.get()
-        elif self.current_page == 3:  # Domain page
+            # Domain
             self.config['domain'] = self.domain_var.get()
             self.config['duckdns_enabled'] = self.duckdns_enabled_var.get()
             self.config['duckdns_subdomain'] = self.duckdns_subdomain_var.get()
             self.config['duckdns_token'] = self.duckdns_token_var.get()
-        elif self.current_page == 4:  # Channels page
-            self.config['web_channels'] = self.web_channels_var.get()
-            self.config['pi_channels'] = self.pi_channels_var.get()
-            self.config['pi_hostname'] = self.pi_hostname_var.get()
-            self.config['pi_user'] = self.pi_user_var.get()
-            self.config['pi_default_channel'] = self.pi_default_channel_var.get()
         return True
 
     # ═══════════════════════════════════════════════════════════════════════════
@@ -367,44 +359,118 @@ class YlemInstaller:
             self.config['install_path'] = path
 
     # ═══════════════════════════════════════════════════════════════════════════
-    # PAGE 2: Network Configuration
+    # PAGE 2: Network Configuration (IP + Ports + Domain)
     # ═══════════════════════════════════════════════════════════════════════════
     def create_network_page(self):
         frame = ttk.Frame(self.page_frame)
         frame.pack(fill=tk.BOTH, expand=True)
         
-        ttk.Label(frame, text="Network Configuration", style='Header.TLabel').pack(anchor='w')
-        ttk.Label(frame, text="Configure your network settings", 
-                  style='SubHeader.TLabel').pack(anchor='w', pady=(0, 20))
+        # Make it scrollable for smaller screens
+        canvas = tk.Canvas(frame, highlightthickness=0)
+        scrollbar = ttk.Scrollbar(frame, orient="vertical", command=canvas.yview)
+        scrollable_frame = ttk.Frame(canvas)
         
-        # Host IP
-        ip_frame = ttk.LabelFrame(frame, text="Local IP Address", padding="10")
-        ip_frame.pack(fill=tk.X, pady=10)
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
+        # Bind mousewheel
+        canvas.bind_all("<MouseWheel>", lambda e: canvas.yview_scroll(int(-1*(e.delta/120)), "units"))
+        
+        ttk.Label(scrollable_frame, text="Network Configuration", style='Header.TLabel').pack(anchor='w', padx=10)
+        ttk.Label(scrollable_frame, text="IP, Ports, and Domain settings", 
+                  style='SubHeader.TLabel').pack(anchor='w', padx=10, pady=(0, 15))
+        
+        # === Host IP ===
+        ip_frame = ttk.LabelFrame(scrollable_frame, text="Local IP Address", padding="10")
+        ip_frame.pack(fill=tk.X, pady=5, padx=10)
         
         ip_row = ttk.Frame(ip_frame)
         ip_row.pack(fill=tk.X)
         
         self.host_ip_var = tk.StringVar(value=self.config['host_ip'])
-        ttk.Entry(ip_row, textvariable=self.host_ip_var, width=20, font=('Consolas', 11)).pack(side=tk.LEFT, padx=(0, 10))
-        ttk.Button(ip_row, text="🔍 Auto-Detect", command=self.detect_ip).pack(side=tk.LEFT)
+        ttk.Entry(ip_row, textvariable=self.host_ip_var, width=18, font=('Consolas', 11)).pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(ip_row, text="Auto-Detect", command=self.detect_ip).pack(side=tk.LEFT)
+        ttk.Label(ip_frame, text="Your PC's local network IP", foreground='gray').pack(anchor='w', pady=(5, 0))
         
-        ttk.Label(ip_frame, text="Your PC's IP on the local network (usually 192.168.x.x)\n"
-                  "Run 'ipconfig' in Command Prompt to find it manually.",
-                  foreground='gray').pack(anchor='w', pady=(10, 0))
-        
-        # ErsatzTV Port
+        # === ErsatzTV Port ===
+        self.ersatztv_port_var = tk.StringVar(value=self.config['ersatztv_port'])
         if self.selected_components['tv'].get():
-            etv_frame = ttk.LabelFrame(frame, text="ErsatzTV Port", padding="10")
-            etv_frame.pack(fill=tk.X, pady=10)
-            
-            self.ersatztv_port_var = tk.StringVar(value=self.config['ersatztv_port'])
-            ttk.Entry(etv_frame, textvariable=self.ersatztv_port_var, width=10, 
-                      font=('Consolas', 11)).pack(side=tk.LEFT)
-            ttk.Label(etv_frame, text="  Default is 8409", foreground='gray').pack(side=tk.LEFT)
-        else:
-            self.ersatztv_port_var = tk.StringVar(value='8409')
+            etv_frame = ttk.LabelFrame(scrollable_frame, text="ErsatzTV Port", padding="10")
+            etv_frame.pack(fill=tk.X, pady=5, padx=10)
+            ttk.Entry(etv_frame, textvariable=self.ersatztv_port_var, width=8, font=('Consolas', 11)).pack(side=tk.LEFT)
+            ttk.Label(etv_frame, text="  Default: 8409", foreground='gray').pack(side=tk.LEFT)
         
-        # Auto-detect on page load
+        # === Ports ===
+        ports_frame = ttk.LabelFrame(scrollable_frame, text="Service Ports", padding="10")
+        ports_frame.pack(fill=tk.X, pady=5, padx=10)
+        
+        self.port_vars = {}
+        
+        port_grid = ttk.Frame(ports_frame)
+        port_grid.pack(fill=tk.X)
+        
+        ports = [
+            ('npm_http_port', 'HTTP', '80'),
+            ('npm_https_port', 'HTTPS', '443'),
+            ('npm_admin_port', 'Admin', '81'),
+        ]
+        
+        if self.selected_components['games'].get():
+            ports.append(('game_server_port', 'Games', '3000'))
+        if self.selected_components['tv'].get():
+            ports.append(('epg_server_port', 'EPG', '3001'))
+        
+        for i, (key, label, default) in enumerate(ports):
+            row = i // 3
+            col = i % 3
+            
+            cell = ttk.Frame(port_grid)
+            cell.grid(row=row, column=col, padx=10, pady=5, sticky='w')
+            
+            ttk.Label(cell, text=f"{label}:").pack(side=tk.LEFT)
+            self.port_vars[key] = tk.StringVar(value=self.config.get(key, default))
+            ttk.Entry(cell, textvariable=self.port_vars[key], width=6, font=('Consolas', 10)).pack(side=tk.LEFT, padx=(5, 0))
+        
+        ttk.Label(ports_frame, text="Use 9080/9443/9081 for testing alongside existing install", 
+                  foreground='gray').pack(anchor='w', pady=(5, 0))
+        
+        # === Domain ===
+        domain_frame = ttk.LabelFrame(scrollable_frame, text="Domain (Optional)", padding="10")
+        domain_frame.pack(fill=tk.X, pady=5, padx=10)
+        
+        self.domain_var = tk.StringVar(value=self.config['domain'])
+        ttk.Entry(domain_frame, textvariable=self.domain_var, width=30, font=('Consolas', 11)).pack(side=tk.LEFT)
+        ttk.Label(domain_frame, text="  e.g., ylem.example.com (blank for local only)", foreground='gray').pack(side=tk.LEFT)
+        
+        # === DuckDNS ===
+        duck_frame = ttk.LabelFrame(scrollable_frame, text="Dynamic DNS - DuckDNS (Optional)", padding="10")
+        duck_frame.pack(fill=tk.X, pady=5, padx=10)
+        
+        self.duckdns_enabled_var = tk.BooleanVar(value=self.config['duckdns_enabled'])
+        ttk.Checkbutton(duck_frame, text="Enable DuckDNS auto-update", 
+                        variable=self.duckdns_enabled_var).pack(anchor='w')
+        
+        duck_row = ttk.Frame(duck_frame)
+        duck_row.pack(fill=tk.X, pady=(5, 0))
+        
+        ttk.Label(duck_row, text="Subdomain:").pack(side=tk.LEFT)
+        self.duckdns_subdomain_var = tk.StringVar(value=self.config['duckdns_subdomain'])
+        ttk.Entry(duck_row, textvariable=self.duckdns_subdomain_var, width=15).pack(side=tk.LEFT, padx=5)
+        ttk.Label(duck_row, text=".duckdns.org").pack(side=tk.LEFT)
+        
+        ttk.Label(duck_row, text="   Token:").pack(side=tk.LEFT)
+        self.duckdns_token_var = tk.StringVar(value=self.config['duckdns_token'])
+        ttk.Entry(duck_row, textvariable=self.duckdns_token_var, width=20, show='*').pack(side=tk.LEFT, padx=5)
+        
+        # Auto-detect IP on page load
         if not self.config['host_ip']:
             self.detect_ip()
     
@@ -422,145 +488,7 @@ class YlemInstaller:
                 "Could not detect IP. Please enter manually.")
 
     # ═══════════════════════════════════════════════════════════════════════════
-    # PAGE 3: Ports Configuration
-    # ═══════════════════════════════════════════════════════════════════════════
-    def create_ports_page(self):
-        frame = ttk.Frame(self.page_frame)
-        frame.pack(fill=tk.BOTH, expand=True)
-        
-        ttk.Label(frame, text="Port Configuration", style='Header.TLabel').pack(anchor='w')
-        ttk.Label(frame, text="Configure service ports (defaults recommended)", 
-                  style='SubHeader.TLabel').pack(anchor='w', pady=(0, 20))
-        
-        self.port_vars = {}
-        
-        ports = [
-            ('npm_http_port', 'HTTP Port', '80', 'Web traffic'),
-            ('npm_https_port', 'HTTPS Port', '443', 'Secure traffic'),
-            ('npm_admin_port', 'Admin Port', '81', 'NPM admin panel'),
-        ]
-        
-        # Add conditional ports
-        if self.selected_components['games'].get():
-            ports.append(('game_server_port', 'Game Server', '3000', 'Multiplayer WebSocket'))
-        
-        if self.selected_components['tv'].get():
-            ports.append(('epg_server_port', 'EPG Server', '3001', 'TV guide API'))
-        
-        ports_frame = ttk.Frame(frame)
-        ports_frame.pack(fill=tk.X)
-        
-        for key, label, default, desc in ports:
-            row = ttk.Frame(ports_frame)
-            row.pack(fill=tk.X, pady=8)
-            
-            ttk.Label(row, text=f"{label}:", width=15, anchor='e').pack(side=tk.LEFT)
-            
-            self.port_vars[key] = tk.StringVar(value=self.config.get(key, default))
-            ttk.Entry(row, textvariable=self.port_vars[key], width=8, 
-                      font=('Consolas', 11)).pack(side=tk.LEFT, padx=10)
-            ttk.Label(row, text=desc, foreground='gray').pack(side=tk.LEFT)
-        
-        # Tip box
-        tip_frame = ttk.LabelFrame(frame, text="💡 Tip", padding="10")
-        tip_frame.pack(fill=tk.X, pady=20)
-        ttk.Label(tip_frame, text="For testing alongside an existing install, use alternate ports:\n"
-                  "9080, 9443, 9081, 3100, 3101", foreground='gray').pack(anchor='w')
-
-    # ═══════════════════════════════════════════════════════════════════════════
-    # PAGE 4: Domain & DNS
-    # ═══════════════════════════════════════════════════════════════════════════
-    def create_domain_page(self):
-        frame = ttk.Frame(self.page_frame)
-        frame.pack(fill=tk.BOTH, expand=True)
-        
-        ttk.Label(frame, text="Domain & Dynamic DNS", style='Header.TLabel').pack(anchor='w')
-        ttk.Label(frame, text="Optional - for remote access", 
-                  style='SubHeader.TLabel').pack(anchor='w', pady=(0, 20))
-        
-        # Domain
-        domain_frame = ttk.LabelFrame(frame, text="Domain Name", padding="10")
-        domain_frame.pack(fill=tk.X, pady=10)
-        
-        self.domain_var = tk.StringVar(value=self.config['domain'])
-        ttk.Entry(domain_frame, textvariable=self.domain_var, width=30, 
-                  font=('Consolas', 11)).pack(side=tk.LEFT)
-        ttk.Label(domain_frame, text="  Leave blank for local-only", foreground='gray').pack(side=tk.LEFT)
-        
-        # DuckDNS
-        duck_frame = ttk.LabelFrame(frame, text="Dynamic DNS (DuckDNS)", padding="10")
-        duck_frame.pack(fill=tk.X, pady=10)
-        
-        self.duckdns_enabled_var = tk.BooleanVar(value=self.config['duckdns_enabled'])
-        ttk.Checkbutton(duck_frame, text="Enable DuckDNS auto-update", 
-                        variable=self.duckdns_enabled_var).pack(anchor='w')
-        
-        ttk.Label(duck_frame, text="Free service that updates your domain when IP changes\n"
-                  "Sign up at duckdns.org", foreground='gray').pack(anchor='w', pady=(5, 10))
-        
-        sub_row = ttk.Frame(duck_frame)
-        sub_row.pack(fill=tk.X, pady=5)
-        ttk.Label(sub_row, text="Subdomain:", width=10).pack(side=tk.LEFT)
-        self.duckdns_subdomain_var = tk.StringVar(value=self.config['duckdns_subdomain'])
-        ttk.Entry(sub_row, textvariable=self.duckdns_subdomain_var, width=20).pack(side=tk.LEFT)
-        ttk.Label(sub_row, text=".duckdns.org").pack(side=tk.LEFT)
-        
-        token_row = ttk.Frame(duck_frame)
-        token_row.pack(fill=tk.X, pady=5)
-        ttk.Label(token_row, text="Token:", width=10).pack(side=tk.LEFT)
-        self.duckdns_token_var = tk.StringVar(value=self.config['duckdns_token'])
-        ttk.Entry(token_row, textvariable=self.duckdns_token_var, width=45, show='•').pack(side=tk.LEFT)
-
-    # ═══════════════════════════════════════════════════════════════════════════
-    # PAGE 5: Channels & Pi Config
-    # ═══════════════════════════════════════════════════════════════════════════
-    def create_channels_page(self):
-        frame = ttk.Frame(self.page_frame)
-        frame.pack(fill=tk.BOTH, expand=True)
-        
-        ttk.Label(frame, text="Channel Configuration", style='Header.TLabel').pack(anchor='w')
-        ttk.Label(frame, text="How channels are detected", 
-                  style='SubHeader.TLabel').pack(anchor='w', pady=(0, 20))
-        
-        # Initialize variables with defaults
-        self.web_channels_var = tk.StringVar()
-        self.pi_channels_var = tk.StringVar()
-        self.pi_hostname_var = tk.StringVar(value='YlemPi')
-        self.pi_user_var = tk.StringVar(value='ylem')
-        self.pi_default_channel_var = tk.StringVar()
-        
-        if self.selected_components['tv'].get():
-            # Automatic channel detection info
-            auto_frame = ttk.LabelFrame(frame, text="✓ Automatic Channel Detection", padding="15")
-            auto_frame.pack(fill=tk.X, pady=10)
-            
-            ttk.Label(auto_frame, text="Channels are automatically loaded from ErsatzTV!", 
-                      font=('Segoe UI', 10, 'bold')).pack(anchor='w')
-            
-            ttk.Label(auto_frame, text="\nThe EPG server will fetch channel data from:\n"
-                      f"  • http://[HOST_IP]:{self.config['ersatztv_port']}/iptv/xmltv.xml\n"
-                      f"  • http://[HOST_IP]:{self.config['ersatztv_port']}/iptv/channels.m3u\n\n"
-                      "All channels from ErsatzTV will appear in the guide automatically.\n"
-                      "Channel logos are downloaded and cached locally.",
-                      foreground='gray', justify=tk.LEFT).pack(anchor='w')
-        
-        if self.selected_components['pi_client'].get():
-            # Pi CRT info
-            pi_frame = ttk.LabelFrame(frame, text="🥧 Raspberry Pi CRT", padding="15")
-            pi_frame.pack(fill=tk.X, pady=10)
-            
-            ttk.Label(pi_frame, text="Pi configuration will be set up separately.\n\n"
-                      "The Pi client will filter for channels starting with 'CRT'\n"
-                      "in their name from ErsatzTV.",
-                      foreground='gray', justify=tk.LEFT).pack(anchor='w')
-        
-        if not self.selected_components['tv'].get() and not self.selected_components['pi_client'].get():
-            ttk.Label(frame, text="No TV or Pi components selected.\n\n"
-                      "Click Next to continue.",
-                      foreground='gray').pack(anchor='w', pady=20)
-
-    # ═══════════════════════════════════════════════════════════════════════════
-    # PAGE 6: Summary
+    # PAGE 3: Summary
     # ═══════════════════════════════════════════════════════════════════════════
     def create_summary_page(self):
         frame = ttk.Frame(self.page_frame)
@@ -726,59 +654,209 @@ Ports:
                 # Wait a moment for services to initialize
                 self.log("\nWaiting for services to start...")
                 import time
-                time.sleep(5)
+                time.sleep(3)
                 
-                # Complete - show setup guide
-                self.install_progress['value'] = 100
-                self.status_var.set("Installation complete!")
-                
-                self.log("\n" + "="*50)
-                self.log("INSTALLATION COMPLETE!")
-                self.log("="*50)
-                
-                # Show NPM setup instructions
-                self.log("\n" + "-"*50)
-                self.log("NGINX PROXY MANAGER SETUP")
-                self.log("-"*50)
-                self.log(f"\n1. Open NPM Admin: http://{self.config['host_ip']}:{self.config['npm_admin_port']}")
-                self.log("\n2. Default login:")
-                self.log("   Email: admin@example.com")
-                self.log("   Password: changeme")
-                self.log("\n3. Add a Proxy Host:")
-                self.log(f"   - Domain: {self.config['domain'] or self.config['host_ip']}")
-                self.log(f"   - Forward Hostname: {self.config['host_ip']}")
-                self.log(f"   - Forward Port: {self.config['npm_http_port']}")
-                self.log("\n4. In the 'Advanced' tab, paste contents of:")
-                self.log(f"   {install_path}/setup/templates/nginx-advanced.conf")
-                
-                self.log("\n" + "-"*50)
-                self.log("YOUR YLEM LINKS")
-                self.log("-"*50)
-                base_url = f"http://{self.config['domain'] or self.config['host_ip']}"
-                if self.config['npm_http_port'] != '80':
-                    base_url += f":{self.config['npm_http_port']}"
-                
-                self.log(f"\nMain Page:     {base_url}/")
-                if self.selected_components['epg'].get():
-                    self.log(f"TV Guide:      {base_url}/guide")
-                if self.selected_components['games'].get():
-                    self.log(f"Games Hub:     {base_url}/games")
-                self.log(f"\nNPM Admin:     http://{self.config['host_ip']}:{self.config['npm_admin_port']}")
-                if self.selected_components['tv'].get():
-                    self.log(f"EPG API:       http://{self.config['host_ip']}:{self.config['epg_server_port']}/health")
-                
+                self.log("\n✓ Installation complete! Click Next to continue to setup.")
             else:
-                self.log("\n  ! Docker failed to start. You can start manually later.")
-                self.log(f"    cd \"{install_path}\"")
-                self.log("    docker-compose up -d")
+                self.log("\n! Docker failed to start automatically.")
+                self.log("  Use the 'Start Docker' button to try again.")
             
-            # Update buttons on main thread
-            self.root.after(0, self._show_finish_buttons, install_path)
+            # Complete install page
+            self.install_progress['value'] = 100
+            self.status_var.set("Files installed! Click Next for setup guide.")
+            
+            # Store install path for later
+            self.final_install_path = install_path
+            
+            # Enable Next button and add Docker button
+            self.root.after(0, self._show_install_complete_buttons, install_path)
             
         except Exception as e:
             self.log(f"\nERROR: {str(e)}")
             self.status_var.set("Installation failed!")
             messagebox.showerror("Error", f"Installation failed:\n{str(e)}")
+    
+    def _show_install_complete_buttons(self, install_path):
+        """Show buttons after install completes"""
+        # Clear nav frame
+        for widget in self.nav_frame.winfo_children():
+            widget.destroy()
+        
+        # Add Start Docker button (opens CMD window)
+        ttk.Button(self.nav_frame, text="Start Docker (CMD)", 
+                   command=lambda: self._start_docker_cmd(install_path)).pack(side=tk.LEFT, padx=5)
+        
+        # Back button (disabled)
+        self.back_btn = ttk.Button(self.nav_frame, text="← Back", state=tk.DISABLED)
+        self.back_btn.pack(side=tk.LEFT, padx=5)
+        
+        # Next button to setup page
+        ttk.Button(self.nav_frame, text="Next → Setup", 
+                   command=lambda: self.show_page(4)).pack(side=tk.RIGHT, padx=5)
+    
+    def _start_docker_cmd(self, install_path):
+        """Start docker-compose in a visible CMD window"""
+        try:
+            # Create a batch file to run docker-compose and keep window open
+            batch_content = f'''@echo off
+cd /d "{install_path}"
+echo.
+echo ========================================
+echo   Starting Ylem Docker Containers
+echo ========================================
+echo.
+echo Running: docker-compose up -d
+echo.
+docker-compose up -d
+echo.
+echo ========================================
+echo   Docker Status
+echo ========================================
+echo.
+docker ps
+echo.
+echo ----------------------------------------
+echo Press any key to close this window...
+pause >nul
+'''
+            batch_path = install_path / '_start_docker.bat'
+            batch_path.write_text(batch_content, encoding='utf-8')
+            
+            # Run the batch file in a new CMD window
+            subprocess.Popen(['cmd', '/c', 'start', 'cmd', '/k', str(batch_path)], 
+                           cwd=str(install_path))
+            
+            self.log("\n→ Docker CMD window opened!")
+            
+        except Exception as e:
+            self.log(f"\nError opening CMD: {str(e)}")
+            messagebox.showerror("Error", f"Failed to open CMD:\n{str(e)}")
+    
+    # ═══════════════════════════════════════════════════════════════════════════
+    # PAGE 5: Setup Guide
+    # ═══════════════════════════════════════════════════════════════════════════
+    def create_setup_page(self):
+        frame = ttk.Frame(self.page_frame)
+        frame.pack(fill=tk.BOTH, expand=True)
+        
+        ttk.Label(frame, text="Setup Complete!", style='Header.TLabel').pack(anchor='w')
+        ttk.Label(frame, text="Configure NPM and access your sites", 
+                  style='SubHeader.TLabel').pack(anchor='w', pady=(0, 10))
+        
+        # Docker Section
+        docker_frame = ttk.LabelFrame(frame, text="Docker Containers", padding="10")
+        docker_frame.pack(fill=tk.X, pady=5)
+        
+        docker_row = ttk.Frame(docker_frame)
+        docker_row.pack(fill=tk.X)
+        
+        ttk.Button(docker_row, text="Start Docker (CMD)", 
+                   command=lambda: self._start_docker_cmd(Path(self.config['install_path']))).pack(side=tk.LEFT, padx=5)
+        ttk.Button(docker_row, text="Stop Docker (CMD)", 
+                   command=lambda: self._stop_docker_cmd(Path(self.config['install_path']))).pack(side=tk.LEFT, padx=5)
+        ttk.Label(docker_row, text="Opens a command window to see Docker output", 
+                  foreground='gray').pack(side=tk.LEFT, padx=10)
+        
+        # NPM Setup Section
+        npm_frame = ttk.LabelFrame(frame, text="Configure Nginx Proxy Manager", padding="10")
+        npm_frame.pack(fill=tk.X, pady=5)
+        
+        ttk.Label(npm_frame, text="1. Click 'Open NPM Admin' below\n"
+                  "2. Login with: admin@example.com / changeme\n"
+                  "3. Add a Proxy Host:\n"
+                  f"     Domain: {self.config['domain'] or self.config['host_ip']}\n"
+                  f"     Forward: {self.config['host_ip']}:{self.config['npm_http_port']}\n"
+                  "4. Click 'Copy Nginx Config' and paste in the Advanced tab",
+                  justify=tk.LEFT).pack(anchor='w')
+        
+        btn_row1 = ttk.Frame(npm_frame)
+        btn_row1.pack(fill=tk.X, pady=(10, 0))
+        
+        ttk.Button(btn_row1, text="Open NPM Admin", 
+                   command=lambda: self.open_url(f"http://{self.config['host_ip']}:{self.config['npm_admin_port']}")).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_row1, text="Copy Nginx Config", 
+                   command=self._copy_nginx_config_from_setup).pack(side=tk.LEFT, padx=5)
+        
+        # Your Links Section  
+        links_frame = ttk.LabelFrame(frame, text="Your Ylem Sites (clickable)", padding="10")
+        links_frame.pack(fill=tk.X, pady=10)
+        
+        base_url = f"http://{self.config['domain'] or self.config['host_ip']}"
+        if self.config['npm_http_port'] != '80':
+            base_url += f":{self.config['npm_http_port']}"
+        
+        # Create clickable links
+        links = [
+            ("Main Page", f"{base_url}/"),
+        ]
+        if self.selected_components['epg'].get():
+            links.append(("TV Guide", f"{base_url}/guide"))
+        if self.selected_components['games'].get():
+            links.append(("Games Hub", f"{base_url}/games"))
+        links.append(("NPM Admin", f"http://{self.config['host_ip']}:{self.config['npm_admin_port']}"))
+        if self.selected_components['tv'].get():
+            links.append(("EPG Health", f"http://{self.config['host_ip']}:{self.config['epg_server_port']}/health"))
+        
+        for name, url in links:
+            link_row = ttk.Frame(links_frame)
+            link_row.pack(fill=tk.X, pady=2)
+            
+            ttk.Label(link_row, text=f"{name}:", width=12, anchor='e').pack(side=tk.LEFT)
+            link_label = ttk.Label(link_row, text=url, foreground='blue', cursor='hand2')
+            link_label.pack(side=tk.LEFT, padx=5)
+            link_label.bind('<Button-1>', lambda e, u=url: self.open_url(u))
+        
+        # Install folder
+        folder_frame = ttk.LabelFrame(frame, text="Installation Location", padding="10")
+        folder_frame.pack(fill=tk.X, pady=5)
+        
+        folder_row = ttk.Frame(folder_frame)
+        folder_row.pack(fill=tk.X)
+        
+        ttk.Label(folder_row, text=str(self.config['install_path'])).pack(side=tk.LEFT)
+        ttk.Button(folder_row, text="Open Folder", 
+                   command=lambda: os.startfile(str(self.config['install_path']))).pack(side=tk.LEFT, padx=10)
+        
+        # Update nav buttons
+        self.back_btn.config(state=tk.DISABLED)
+        self.next_btn.config(text="Finish", command=self.root.quit)
+    
+    def _stop_docker_cmd(self, install_path):
+        """Stop docker-compose in a visible CMD window"""
+        try:
+            batch_content = f'''@echo off
+cd /d "{install_path}"
+echo.
+echo ========================================
+echo   Stopping Ylem Docker Containers
+echo ========================================
+echo.
+docker-compose down
+echo.
+echo Done! Containers stopped.
+echo.
+pause
+'''
+            batch_path = install_path / '_stop_docker.bat'
+            batch_path.write_text(batch_content, encoding='utf-8')
+            
+            subprocess.Popen(['cmd', '/c', 'start', 'cmd', '/k', str(batch_path)], 
+                           cwd=str(install_path))
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to open CMD:\n{str(e)}")
+    
+    def _copy_nginx_config_from_setup(self):
+        """Copy nginx config to clipboard from setup page"""
+        try:
+            install_path = Path(self.config['install_path'])
+            config_path = install_path / 'setup' / 'templates' / 'nginx-advanced.conf'
+            config_text = config_path.read_text(encoding='utf-8')
+            self.root.clipboard_clear()
+            self.root.clipboard_append(config_text)
+            messagebox.showinfo("Copied!", "Nginx config copied to clipboard!\n\nPaste it into NPM → Proxy Host → Advanced tab")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to copy: {str(e)}")
     
     def _run_docker_sync(self, install_path):
         """Run docker-compose up synchronously"""
@@ -805,70 +883,6 @@ Ports:
         except Exception as e:
             self.log(f"  Docker error: {str(e)}")
             return False
-    
-    def _show_finish_buttons(self, install_path):
-        """Show finish buttons after installation"""
-        # Clear nav frame and add new buttons
-        for widget in self.nav_frame.winfo_children():
-            widget.destroy()
-        
-        # Create button frame with grid for better layout
-        btn_frame = ttk.Frame(self.nav_frame)
-        btn_frame.pack(fill=tk.X)
-        
-        # Left side buttons
-        ttk.Button(btn_frame, text="Open NPM Admin", 
-                   command=lambda: self.open_url(f"http://{self.config['host_ip']}:{self.config['npm_admin_port']}")).pack(side=tk.LEFT, padx=3)
-        
-        ttk.Button(btn_frame, text="Open Main Site", 
-                   command=lambda: self._open_main_site()).pack(side=tk.LEFT, padx=3)
-        
-        ttk.Button(btn_frame, text="Open Folder", 
-                   command=lambda: os.startfile(str(install_path))).pack(side=tk.LEFT, padx=3)
-        
-        ttk.Button(btn_frame, text="Copy Nginx Config", 
-                   command=lambda: self._copy_nginx_config(install_path)).pack(side=tk.LEFT, padx=3)
-        
-        # Right side
-        ttk.Button(btn_frame, text="Finish", 
-                   command=self.root.quit).pack(side=tk.RIGHT, padx=3)
-    
-    def _open_main_site(self):
-        """Open the main site URL"""
-        base_url = f"http://{self.config['domain'] or self.config['host_ip']}"
-        if self.config['npm_http_port'] != '80':
-            base_url += f":{self.config['npm_http_port']}"
-        self.open_url(base_url)
-    
-    def _copy_nginx_config(self, install_path):
-        """Copy nginx config to clipboard"""
-        try:
-            config_path = install_path / 'setup' / 'templates' / 'nginx-advanced.conf'
-            config_text = config_path.read_text(encoding='utf-8')
-            self.root.clipboard_clear()
-            self.root.clipboard_append(config_text)
-            self.log("\n✓ Nginx config copied to clipboard!")
-            self.log("  Paste it into NPM -> Proxy Host -> Advanced tab")
-        except Exception as e:
-            self.log(f"\n✗ Failed to copy: {str(e)}")
-    
-    def _run_docker(self, install_path):
-        """Run docker-compose up (legacy button handler)"""
-        try:
-            self.log("\nStarting Docker containers...")
-            result = subprocess.run(
-                ['docker-compose', 'up', '-d'],
-                cwd=str(install_path),
-                capture_output=True,
-                text=True
-            )
-            if result.returncode == 0:
-                self.log("Docker containers started successfully!")
-                self.log(result.stdout)
-            else:
-                self.log(f"Docker error: {result.stderr}")
-        except Exception as e:
-            self.log(f"Failed to start Docker: {str(e)}")
     
     def download_github_files(self, install_path):
         """Download files from GitHub"""
