@@ -231,16 +231,34 @@ class YlemInstaller:
         for widget in self.page_frame.winfo_children():
             widget.destroy()
         
-        # Update navigation
-        self.back_btn.config(state=tk.NORMAL if index > 0 else tk.DISABLED)
+        # Track if installation has completed
+        if not hasattr(self, 'installation_complete'):
+            self.installation_complete = False
         
-        if index == len(self.pages) - 2:  # Summary page
-            self.next_btn.config(text="🚀 Install")
-        elif index == len(self.pages) - 1:  # Install page
-            self.next_btn.config(text="Close", command=self.root.quit)
+        # Update navigation based on page and installation state
+        if index == 0:
+            self.back_btn.config(state=tk.DISABLED)
+        elif index == 3 and self.installation_complete:
+            # On install page after completion, allow back to review
+            self.back_btn.config(state=tk.NORMAL, command=self.prev_page)
+        elif index == 4:
+            # Setup page - no going back
             self.back_btn.config(state=tk.DISABLED)
         else:
-            self.next_btn.config(text="Next →", command=self.next_page)
+            self.back_btn.config(state=tk.NORMAL, command=self.prev_page)
+        
+        # Configure Next button based on page
+        if index == 2:  # Summary page (index 2)
+            self.next_btn.config(text="Install →", command=self.next_page, state=tk.NORMAL)
+        elif index == 3:  # Install page (index 3)
+            if self.installation_complete:
+                self.next_btn.config(text="Next → Setup", command=lambda: self.show_page(4), state=tk.NORMAL)
+            else:
+                self.next_btn.config(text="Installing...", state=tk.DISABLED)
+        elif index == 4:  # Setup page (index 4)
+            self.next_btn.config(text="Finish", command=self.root.quit, state=tk.NORMAL)
+        else:
+            self.next_btn.config(text="Next →", command=self.next_page, state=tk.NORMAL)
         
         self.current_page = index
         self.update_progress(index)
@@ -251,16 +269,21 @@ class YlemInstaller:
         # Validate current page
         if not self.validate_page():
             return
-            
-        if self.current_page == len(self.pages) - 2:  # Summary -> Install
-            self.show_page(self.current_page + 1)
-            self.start_installation()
+        
+        if self.current_page == 2:  # Summary -> Install
+            self.show_page(3)
+            # Only start installation if not already done
+            if not self.installation_complete:
+                self.start_installation()
         elif self.current_page < len(self.pages) - 1:
             self.show_page(self.current_page + 1)
     
     def prev_page(self):
         """Go to previous page"""
         if self.current_page > 0:
+            # Don't go back from setup page
+            if self.current_page == 4:
+                return
             self.show_page(self.current_page - 1)
     
     def validate_page(self):
@@ -290,7 +313,7 @@ class YlemInstaller:
         
         ttk.Label(frame, text="Select Components", style='Header.TLabel').pack(anchor='w')
         ttk.Label(frame, text="Choose which parts of Ylem to install", 
-                  style='SubHeader.TLabel').pack(anchor='w', pady=(0, 15))
+                  style='SubHeader.TLabel').pack(anchor='w', pady=(0, 10))
         
         # Component checkboxes in a compact frame
         components_frame = ttk.LabelFrame(frame, text="Components", padding="10")
@@ -313,39 +336,113 @@ class YlemInstaller:
         
         # Install path
         path_frame = ttk.LabelFrame(frame, text="Installation Path", padding="10")
-        path_frame.pack(fill=tk.X, pady=(10, 10))
+        path_frame.pack(fill=tk.X, pady=(10, 5))
         
         self.install_path_var = tk.StringVar(value=self.config['install_path'])
         ttk.Entry(path_frame, textvariable=self.install_path_var, width=50).pack(side=tk.LEFT, padx=(0, 10))
         ttk.Button(path_frame, text="Browse...", command=self.browse_install_path).pack(side=tk.LEFT)
         
-        # Prerequisites with clickable links
-        prereq_frame = ttk.LabelFrame(frame, text="Prerequisites (click to download)", padding="10")
-        prereq_frame.pack(fill=tk.X, pady=(10, 0))
+        # Prerequisites with status checks
+        prereq_frame = ttk.LabelFrame(frame, text="Prerequisites", padding="10")
+        prereq_frame.pack(fill=tk.X, pady=(5, 0))
+        
+        # Check prerequisites
+        self.prereq_status = {}
+        self._check_prerequisites()
         
         # Docker Desktop
         docker_frame = ttk.Frame(prereq_frame)
         docker_frame.pack(fill=tk.X, pady=2)
-        ttk.Label(docker_frame, text="• Docker Desktop", width=20, anchor='w').pack(side=tk.LEFT)
-        docker_link = ttk.Label(docker_frame, text="Download", foreground='blue', cursor='hand2')
-        docker_link.pack(side=tk.LEFT)
-        docker_link.bind('<Button-1>', lambda e: self.open_url('https://www.docker.com/products/docker-desktop/'))
+        
+        docker_status = "✓" if self.prereq_status.get('docker') else "✗"
+        docker_color = "green" if self.prereq_status.get('docker') else "red"
+        ttk.Label(docker_frame, text=docker_status, foreground=docker_color, width=3).pack(side=tk.LEFT)
+        ttk.Label(docker_frame, text="Docker Desktop", width=18, anchor='w').pack(side=tk.LEFT)
+        
+        if self.prereq_status.get('docker'):
+            ttk.Label(docker_frame, text="Installed", foreground='green').pack(side=tk.LEFT)
+        else:
+            docker_link = ttk.Label(docker_frame, text="Download", foreground='blue', cursor='hand2')
+            docker_link.pack(side=tk.LEFT)
+            docker_link.bind('<Button-1>', lambda e: self.open_url('https://www.docker.com/products/docker-desktop/'))
+            ttk.Label(docker_frame, text=" (Required)", foreground='red').pack(side=tk.LEFT)
+        
+        # Docker Running check
+        if self.prereq_status.get('docker'):
+            running_frame = ttk.Frame(prereq_frame)
+            running_frame.pack(fill=tk.X, pady=2)
+            
+            running_status = "✓" if self.prereq_status.get('docker_running') else "✗"
+            running_color = "green" if self.prereq_status.get('docker_running') else "orange"
+            ttk.Label(running_frame, text=running_status, foreground=running_color, width=3).pack(side=tk.LEFT)
+            ttk.Label(running_frame, text="Docker Running", width=18, anchor='w').pack(side=tk.LEFT)
+            
+            if self.prereq_status.get('docker_running'):
+                ttk.Label(running_frame, text="Running", foreground='green').pack(side=tk.LEFT)
+            else:
+                ttk.Label(running_frame, text="Start Docker Desktop", foreground='orange').pack(side=tk.LEFT)
         
         # ErsatzTV
         etv_frame = ttk.Frame(prereq_frame)
         etv_frame.pack(fill=tk.X, pady=2)
-        ttk.Label(etv_frame, text="• ErsatzTV", width=20, anchor='w').pack(side=tk.LEFT)
-        etv_link = ttk.Label(etv_frame, text="Download", foreground='blue', cursor='hand2')
-        etv_link.pack(side=tk.LEFT)
-        etv_link.bind('<Button-1>', lambda e: self.open_url('https://github.com/ErsatzTV/ErsatzTV/releases'))
         
-        # Node.js (optional, for local dev)
-        node_frame = ttk.Frame(prereq_frame)
-        node_frame.pack(fill=tk.X, pady=2)
-        ttk.Label(node_frame, text="• Node.js (optional)", width=20, anchor='w').pack(side=tk.LEFT)
-        node_link = ttk.Label(node_frame, text="Download", foreground='blue', cursor='hand2')
-        node_link.pack(side=tk.LEFT)
-        node_link.bind('<Button-1>', lambda e: self.open_url('https://nodejs.org/en/download/'))
+        etv_status = "✓" if self.prereq_status.get('ersatztv') else "?"
+        etv_color = "green" if self.prereq_status.get('ersatztv') else "gray"
+        ttk.Label(etv_frame, text=etv_status, foreground=etv_color, width=3).pack(side=tk.LEFT)
+        ttk.Label(etv_frame, text="ErsatzTV", width=18, anchor='w').pack(side=tk.LEFT)
+        
+        if self.prereq_status.get('ersatztv'):
+            ttk.Label(etv_frame, text=f"Found on port {self.prereq_status.get('ersatztv_port', '8409')}", 
+                      foreground='green').pack(side=tk.LEFT)
+        else:
+            etv_link = ttk.Label(etv_frame, text="Download", foreground='blue', cursor='hand2')
+            etv_link.pack(side=tk.LEFT)
+            etv_link.bind('<Button-1>', lambda e: self.open_url('https://github.com/ErsatzTV/ErsatzTV/releases'))
+            ttk.Label(etv_frame, text=" (Required for TV)", foreground='gray').pack(side=tk.LEFT)
+        
+        # Refresh button
+        btn_frame = ttk.Frame(prereq_frame)
+        btn_frame.pack(fill=tk.X, pady=(10, 0))
+        ttk.Button(btn_frame, text="🔄 Recheck", command=self._refresh_prerequisites).pack(side=tk.LEFT)
+        
+        # Store frame reference for refresh
+        self._prereq_frame_parent = frame
+    
+    def _check_prerequisites(self):
+        """Check if required programs are installed"""
+        # Check Docker
+        try:
+            result = subprocess.run(['docker', '--version'], capture_output=True, text=True, timeout=5)
+            self.prereq_status['docker'] = result.returncode == 0
+        except:
+            self.prereq_status['docker'] = False
+        
+        # Check if Docker is running
+        if self.prereq_status['docker']:
+            try:
+                result = subprocess.run(['docker', 'ps'], capture_output=True, text=True, timeout=10)
+                self.prereq_status['docker_running'] = result.returncode == 0
+            except:
+                self.prereq_status['docker_running'] = False
+        else:
+            self.prereq_status['docker_running'] = False
+        
+        # Check ErsatzTV (try to connect to default port)
+        self.prereq_status['ersatztv'] = False
+        for port in ['8409', '8410']:
+            try:
+                import urllib.request
+                req = urllib.request.urlopen(f'http://localhost:{port}', timeout=2)
+                self.prereq_status['ersatztv'] = True
+                self.prereq_status['ersatztv_port'] = port
+                break
+            except:
+                pass
+    
+    def _refresh_prerequisites(self):
+        """Refresh prerequisite checks and redraw page"""
+        self._check_prerequisites()
+        self.show_page(0)  # Redraw the components page
     
     def open_url(self, url):
         """Open URL in default browser"""
@@ -656,19 +753,20 @@ Ports:
                 import time
                 time.sleep(3)
                 
-                self.log("\n✓ Installation complete! Click Next to continue to setup.")
+                self.log("\n✓ Installation complete! Click 'Next → Setup' to continue.")
             else:
                 self.log("\n! Docker failed to start automatically.")
-                self.log("  Use the 'Start Docker' button to try again.")
+                self.log("  Use the 'Start Docker' button on the next page.")
             
             # Complete install page
             self.install_progress['value'] = 100
-            self.status_var.set("Files installed! Click Next for setup guide.")
+            self.status_var.set("Installation complete!")
             
-            # Store install path for later
+            # Mark installation as complete
+            self.installation_complete = True
             self.final_install_path = install_path
             
-            # Enable Next button and add Docker button
+            # Update buttons on main thread
             self.root.after(0, self._show_install_complete_buttons, install_path)
             
         except Exception as e:
@@ -678,21 +776,22 @@ Ports:
     
     def _show_install_complete_buttons(self, install_path):
         """Show buttons after install completes"""
-        # Clear nav frame
+        # Clear nav frame and rebuild
         for widget in self.nav_frame.winfo_children():
             widget.destroy()
         
-        # Add Start Docker button (opens CMD window)
+        # Back button - can go back to review settings
+        self.back_btn = ttk.Button(self.nav_frame, text="← Back", command=self.prev_page)
+        self.back_btn.pack(side=tk.LEFT, padx=5)
+        
+        # Start Docker button (opens CMD window)
         ttk.Button(self.nav_frame, text="Start Docker (CMD)", 
                    command=lambda: self._start_docker_cmd(install_path)).pack(side=tk.LEFT, padx=5)
         
-        # Back button (disabled)
-        self.back_btn = ttk.Button(self.nav_frame, text="← Back", state=tk.DISABLED)
-        self.back_btn.pack(side=tk.LEFT, padx=5)
-        
         # Next button to setup page
-        ttk.Button(self.nav_frame, text="Next → Setup", 
-                   command=lambda: self.show_page(4)).pack(side=tk.RIGHT, padx=5)
+        self.next_btn = ttk.Button(self.nav_frame, text="Next → Setup", 
+                                   command=lambda: self.show_page(4))
+        self.next_btn.pack(side=tk.RIGHT, padx=5)
     
     def _start_docker_cmd(self, install_path):
         """Start docker-compose in a visible CMD window"""
