@@ -519,57 +519,45 @@ class YlemInstaller:
         frame.pack(fill=tk.BOTH, expand=True)
         
         ttk.Label(frame, text="Channel Configuration", style='Header.TLabel').pack(anchor='w')
-        ttk.Label(frame, text="Configure TV channels (format: number:name,number:name)", 
+        ttk.Label(frame, text="How channels are detected", 
                   style='SubHeader.TLabel').pack(anchor='w', pady=(0, 20))
         
+        # Initialize variables with defaults
+        self.web_channels_var = tk.StringVar()
+        self.pi_channels_var = tk.StringVar()
+        self.pi_hostname_var = tk.StringVar(value='YlemPi')
+        self.pi_user_var = tk.StringVar(value='ylem')
+        self.pi_default_channel_var = tk.StringVar()
+        
         if self.selected_components['tv'].get():
-            # Web Channels
-            web_frame = ttk.LabelFrame(frame, text="Web Channels", padding="10")
-            web_frame.pack(fill=tk.X, pady=10)
+            # Automatic channel detection info
+            auto_frame = ttk.LabelFrame(frame, text="✓ Automatic Channel Detection", padding="15")
+            auto_frame.pack(fill=tk.X, pady=10)
             
-            self.web_channels_var = tk.StringVar(value=self.config['web_channels'])
-            ttk.Entry(web_frame, textvariable=self.web_channels_var, width=65, 
-                      font=('Consolas', 10)).pack(fill=tk.X)
-            ttk.Label(web_frame, text="Example: 1000:News,1001:Movies", 
-                      foreground='gray').pack(anchor='w')
-        else:
-            self.web_channels_var = tk.StringVar()
+            ttk.Label(auto_frame, text="Channels are automatically loaded from ErsatzTV!", 
+                      font=('Segoe UI', 10, 'bold')).pack(anchor='w')
+            
+            ttk.Label(auto_frame, text="\nThe EPG server will fetch channel data from:\n"
+                      f"  • http://[HOST_IP]:{self.config['ersatztv_port']}/iptv/xmltv.xml\n"
+                      f"  • http://[HOST_IP]:{self.config['ersatztv_port']}/iptv/channels.m3u\n\n"
+                      "All channels from ErsatzTV will appear in the guide automatically.\n"
+                      "Channel logos are downloaded and cached locally.",
+                      foreground='gray', justify=tk.LEFT).pack(anchor='w')
         
         if self.selected_components['pi_client'].get():
-            # Pi Channels
-            pi_frame = ttk.LabelFrame(frame, text="Pi CRT Channels (4:3 content)", padding="10")
+            # Pi CRT info
+            pi_frame = ttk.LabelFrame(frame, text="🥧 Raspberry Pi CRT", padding="15")
             pi_frame.pack(fill=tk.X, pady=10)
             
-            self.pi_channels_var = tk.StringVar(value=self.config['pi_channels'])
-            ttk.Entry(pi_frame, textvariable=self.pi_channels_var, width=65, 
-                      font=('Consolas', 10)).pack(fill=tk.X)
-            
-            # Pi Settings
-            pi_settings = ttk.LabelFrame(frame, text="Raspberry Pi Settings", padding="10")
-            pi_settings.pack(fill=tk.X, pady=10)
-            
-            row1 = ttk.Frame(pi_settings)
-            row1.pack(fill=tk.X, pady=3)
-            ttk.Label(row1, text="Hostname:", width=15).pack(side=tk.LEFT)
-            self.pi_hostname_var = tk.StringVar(value=self.config['pi_hostname'])
-            ttk.Entry(row1, textvariable=self.pi_hostname_var, width=20).pack(side=tk.LEFT)
-            
-            row2 = ttk.Frame(pi_settings)
-            row2.pack(fill=tk.X, pady=3)
-            ttk.Label(row2, text="Username:", width=15).pack(side=tk.LEFT)
-            self.pi_user_var = tk.StringVar(value=self.config['pi_user'])
-            ttk.Entry(row2, textvariable=self.pi_user_var, width=20).pack(side=tk.LEFT)
-            
-            row3 = ttk.Frame(pi_settings)
-            row3.pack(fill=tk.X, pady=3)
-            ttk.Label(row3, text="Default Channel:", width=15).pack(side=tk.LEFT)
-            self.pi_default_channel_var = tk.StringVar(value=self.config['pi_default_channel'])
-            ttk.Entry(row3, textvariable=self.pi_default_channel_var, width=10).pack(side=tk.LEFT)
-        else:
-            self.pi_channels_var = tk.StringVar()
-            self.pi_hostname_var = tk.StringVar(value='YlemPi')
-            self.pi_user_var = tk.StringVar(value='ylem')
-            self.pi_default_channel_var = tk.StringVar()
+            ttk.Label(pi_frame, text="Pi configuration will be set up separately.\n\n"
+                      "The Pi client will filter for channels starting with 'CRT'\n"
+                      "in their name from ErsatzTV.",
+                      foreground='gray', justify=tk.LEFT).pack(anchor='w')
+        
+        if not self.selected_components['tv'].get() and not self.selected_components['pi_client'].get():
+            ttk.Label(frame, text="No TV or Pi components selected.\n\n"
+                      "Click Next to continue.",
+                      foreground='gray').pack(anchor='w', pady=20)
 
     # ═══════════════════════════════════════════════════════════════════════════
     # PAGE 6: Summary
@@ -804,19 +792,13 @@ GAME_SERVER_PORT={self.config.get('game_server_port', '3000')}
 EPG_SERVER_PORT={self.config.get('epg_server_port', '3001')}
 ERSATZTV_PORT={self.config['ersatztv_port']}
 
-# DuckDNS
+# DuckDNS (Dynamic DNS)
 DUCKDNS_ENABLED={str(self.config['duckdns_enabled']).lower()}
 DUCKDNS_SUBDOMAIN={self.config['duckdns_subdomain']}
 DUCKDNS_TOKEN={self.config['duckdns_token']}
 
-# Channels
-WEB_CHANNELS={self.config['web_channels']}
-PI_CHANNELS={self.config['pi_channels']}
-
-# Raspberry Pi
-PI_HOSTNAME={self.config['pi_hostname']}
-PI_USER={self.config['pi_user']}
-PI_DEFAULT_CHANNEL={self.config['pi_default_channel']}
+# Channels are automatically loaded from ErsatzTV
+# No manual configuration needed!
 """
         (install_path / '.env').write_text(env)
     
