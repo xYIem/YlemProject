@@ -659,9 +659,9 @@ Ports:
             
             dirs = ['data', 'data/Images', 'setup/templates', 'scripts']
             if self.selected_components['games'].get():
-                dirs.extend(['game-server', 'web/v2/css', 'web/v2/js', 'web/v2/games'])
+                dirs.extend(['game-server', 'game-server/shared', 'web/v2/css', 'web/v2/js', 'web/v2/games', 'web/v2/games/boggle', 'web/v2/games/scrabble'])
             if self.selected_components['tv'].get():
-                dirs.append('epg-server')
+                dirs.extend(['epg-server', 'epg-server/logos'])
             if self.selected_components['diagnostics'].get():
                 dirs.extend(['diagnostics', 'diagnostics/static'])
             if self.selected_components['pi_client'].get():
@@ -983,7 +983,7 @@ location = /guide {{
     ports:
       - '{self.config['epg_server_port']}:3001'
     volumes:
-      - ./epg-server:/app:ro
+      - ./epg-server:/app
     environment:
       - PORT=3001
       - HOST_IP={self.config['host_ip']}
