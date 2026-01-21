@@ -1,0 +1,10 @@
+﻿# PyInstaller
+setup/build/
+setup/dist/
+setup/*.spec
+__pycache__/
+*.pyc
+
+# Environment
+.env
+*.log
