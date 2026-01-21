@@ -648,7 +648,7 @@ Ports:
         """Main installation logic"""
         try:
             install_path = Path(self.config['install_path'])
-            total_steps = 6
+            total_steps = 7
             step = 0
             
             # Step 1: Create directories
@@ -712,19 +712,65 @@ Ports:
             self.generate_scripts(install_path)
             self.log("  ✓ Helper scripts created")
             
-            # Complete
-            self.install_progress['value'] = 100
-            self.status_var.set("Installation complete!")
+            # Step 7: Start Docker containers
+            step += 1
+            self.install_progress['value'] = (step / total_steps) * 100
+            self.status_var.set("Starting Docker containers...")
+            self.log("\nStarting Docker containers...")
             
-            self.log("\n" + "="*50)
-            self.log("INSTALLATION COMPLETE!")
-            self.log("="*50)
-            self.log(f"\nInstalled to: {install_path}")
-            self.log(f"\nNext steps:")
-            self.log(f"  1. Open a terminal in the install folder")
-            self.log(f"  2. Run: docker-compose up -d")
-            self.log(f"  3. Open http://{self.config['host_ip']}:{self.config['npm_admin_port']}")
-            self.log(f"  4. Configure proxy host with nginx-advanced.conf")
+            docker_success = self._run_docker_sync(install_path)
+            
+            if docker_success:
+                self.log("  ✓ Docker containers started!")
+                
+                # Wait a moment for services to initialize
+                self.log("\nWaiting for services to start...")
+                import time
+                time.sleep(5)
+                
+                # Complete - show setup guide
+                self.install_progress['value'] = 100
+                self.status_var.set("Installation complete!")
+                
+                self.log("\n" + "="*50)
+                self.log("INSTALLATION COMPLETE!")
+                self.log("="*50)
+                
+                # Show NPM setup instructions
+                self.log("\n" + "-"*50)
+                self.log("NGINX PROXY MANAGER SETUP")
+                self.log("-"*50)
+                self.log(f"\n1. Open NPM Admin: http://{self.config['host_ip']}:{self.config['npm_admin_port']}")
+                self.log("\n2. Default login:")
+                self.log("   Email: admin@example.com")
+                self.log("   Password: changeme")
+                self.log("\n3. Add a Proxy Host:")
+                self.log(f"   - Domain: {self.config['domain'] or self.config['host_ip']}")
+                self.log(f"   - Forward Hostname: {self.config['host_ip']}")
+                self.log(f"   - Forward Port: {self.config['npm_http_port']}")
+                self.log("\n4. In the 'Advanced' tab, paste contents of:")
+                self.log(f"   {install_path}/setup/templates/nginx-advanced.conf")
+                
+                self.log("\n" + "-"*50)
+                self.log("YOUR YLEM LINKS")
+                self.log("-"*50)
+                base_url = f"http://{self.config['domain'] or self.config['host_ip']}"
+                if self.config['npm_http_port'] != '80':
+                    base_url += f":{self.config['npm_http_port']}"
+                
+                self.log(f"\nMain Page:     {base_url}/")
+                if self.selected_components['epg'].get():
+                    self.log(f"TV Guide:      {base_url}/guide")
+                if self.selected_components['games'].get():
+                    self.log(f"Games Hub:     {base_url}/games")
+                self.log(f"\nNPM Admin:     http://{self.config['host_ip']}:{self.config['npm_admin_port']}")
+                if self.selected_components['tv'].get():
+                    self.log(f"EPG API:       http://{self.config['host_ip']}:{self.config['epg_server_port']}/health")
+                
+            else:
+                self.log("\n  ! Docker failed to start. You can start manually later.")
+                self.log(f"    cd \"{install_path}\"")
+                self.log("    docker-compose up -d")
             
             # Update buttons on main thread
             self.root.after(0, self._show_finish_buttons, install_path)
@@ -734,23 +780,80 @@ Ports:
             self.status_var.set("Installation failed!")
             messagebox.showerror("Error", f"Installation failed:\n{str(e)}")
     
+    def _run_docker_sync(self, install_path):
+        """Run docker-compose up synchronously"""
+        try:
+            result = subprocess.run(
+                ['docker-compose', 'up', '-d'],
+                cwd=str(install_path),
+                capture_output=True,
+                text=True,
+                timeout=120
+            )
+            if result.returncode == 0:
+                self.log(result.stdout)
+                return True
+            else:
+                self.log(f"  Docker error: {result.stderr}")
+                return False
+        except subprocess.TimeoutExpired:
+            self.log("  Docker timed out")
+            return False
+        except FileNotFoundError:
+            self.log("  Docker not found. Is Docker Desktop installed and running?")
+            return False
+        except Exception as e:
+            self.log(f"  Docker error: {str(e)}")
+            return False
+    
     def _show_finish_buttons(self, install_path):
         """Show finish buttons after installation"""
         # Clear nav frame and add new buttons
         for widget in self.nav_frame.winfo_children():
             widget.destroy()
         
-        ttk.Button(self.nav_frame, text="Open Install Folder", 
-                   command=lambda: os.startfile(str(install_path))).pack(side=tk.LEFT, padx=5)
+        # Create button frame with grid for better layout
+        btn_frame = ttk.Frame(self.nav_frame)
+        btn_frame.pack(fill=tk.X)
         
-        ttk.Button(self.nav_frame, text="Run Docker Compose", 
-                   command=lambda: self._run_docker(install_path)).pack(side=tk.LEFT, padx=5)
+        # Left side buttons
+        ttk.Button(btn_frame, text="Open NPM Admin", 
+                   command=lambda: self.open_url(f"http://{self.config['host_ip']}:{self.config['npm_admin_port']}")).pack(side=tk.LEFT, padx=3)
         
-        ttk.Button(self.nav_frame, text="Finish", 
-                   command=self.root.quit).pack(side=tk.RIGHT, padx=5)
+        ttk.Button(btn_frame, text="Open Main Site", 
+                   command=lambda: self._open_main_site()).pack(side=tk.LEFT, padx=3)
+        
+        ttk.Button(btn_frame, text="Open Folder", 
+                   command=lambda: os.startfile(str(install_path))).pack(side=tk.LEFT, padx=3)
+        
+        ttk.Button(btn_frame, text="Copy Nginx Config", 
+                   command=lambda: self._copy_nginx_config(install_path)).pack(side=tk.LEFT, padx=3)
+        
+        # Right side
+        ttk.Button(btn_frame, text="Finish", 
+                   command=self.root.quit).pack(side=tk.RIGHT, padx=3)
+    
+    def _open_main_site(self):
+        """Open the main site URL"""
+        base_url = f"http://{self.config['domain'] or self.config['host_ip']}"
+        if self.config['npm_http_port'] != '80':
+            base_url += f":{self.config['npm_http_port']}"
+        self.open_url(base_url)
+    
+    def _copy_nginx_config(self, install_path):
+        """Copy nginx config to clipboard"""
+        try:
+            config_path = install_path / 'setup' / 'templates' / 'nginx-advanced.conf'
+            config_text = config_path.read_text(encoding='utf-8')
+            self.root.clipboard_clear()
+            self.root.clipboard_append(config_text)
+            self.log("\n✓ Nginx config copied to clipboard!")
+            self.log("  Paste it into NPM -> Proxy Host -> Advanced tab")
+        except Exception as e:
+            self.log(f"\n✗ Failed to copy: {str(e)}")
     
     def _run_docker(self, install_path):
-        """Run docker-compose up"""
+        """Run docker-compose up (legacy button handler)"""
         try:
             self.log("\nStarting Docker containers...")
             result = subprocess.run(
