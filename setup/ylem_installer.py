@@ -772,7 +772,7 @@ Ports:
     </div>
 </body>
 </html>'''
-        (install_path / 'data' / 'index.html').write_text(index_html)
+        (install_path / 'data' / 'index.html').write_text(index_html, encoding='utf-8')
         self.log("  ✓ index.html")
     
     def generate_env_file(self, install_path):
@@ -800,7 +800,7 @@ DUCKDNS_TOKEN={self.config['duckdns_token']}
 # Channels are automatically loaded from ErsatzTV
 # No manual configuration needed!
 """
-        (install_path / '.env').write_text(env)
+        (install_path / '.env').write_text(env, encoding='utf-8')
     
     def generate_nginx_config(self, install_path):
         """Generate nginx config"""
@@ -858,7 +858,7 @@ location = /guide {{
 }}
 """
         
-        (install_path / 'setup' / 'templates' / 'nginx-advanced.conf').write_text(config)
+        (install_path / 'setup' / 'templates' / 'nginx-advanced.conf').write_text(config, encoding='utf-8')
     
     def generate_docker_compose(self, install_path):
         """Generate docker-compose.yml"""
@@ -917,7 +917,7 @@ services:
       - PORT=3000
 """
         
-        (install_path / 'docker-compose.yml').write_text(compose)
+        (install_path / 'docker-compose.yml').write_text(compose, encoding='utf-8')
     
     def generate_scripts(self, install_path):
         """Generate helper scripts"""
@@ -932,7 +932,7 @@ echo   Web: http://{self.config['host_ip']}:{self.config['npm_http_port']}
 echo   Admin: http://{self.config['host_ip']}:{self.config['npm_admin_port']}
 pause
 """
-        (install_path / 'start.bat').write_text(start_script)
+        (install_path / 'start.bat').write_text(start_script, encoding='utf-8')
         
         # Stop script
         stop_script = f"""@echo off
@@ -942,7 +942,7 @@ docker-compose down
 echo Ylem stopped.
 pause
 """
-        (install_path / 'stop.bat').write_text(stop_script)
+        (install_path / 'stop.bat').write_text(stop_script, encoding='utf-8')
         
         self.log("  ✓ start.bat")
         self.log("  ✓ stop.bat")
