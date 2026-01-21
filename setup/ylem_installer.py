@@ -673,7 +673,7 @@ Ports:
         """Main installation logic"""
         try:
             install_path = Path(self.config['install_path'])
-            total_steps = 7
+            total_steps = 6
             step = 0
             
             # Step 1: Create directories
@@ -737,30 +737,15 @@ Ports:
             self.generate_scripts(install_path)
             self.log("  ✓ Helper scripts created")
             
-            # Step 7: Start Docker containers
-            step += 1
-            self.install_progress['value'] = (step / total_steps) * 100
-            self.status_var.set("Starting Docker containers...")
-            self.log("\nStarting Docker containers...")
-            
-            docker_success = self._run_docker_sync(install_path)
-            
-            if docker_success:
-                self.log("  ✓ Docker containers started!")
-                
-                # Wait a moment for services to initialize
-                self.log("\nWaiting for services to start...")
-                import time
-                time.sleep(3)
-                
-                self.log("\n✓ Installation complete! Click 'Next → Setup' to continue.")
-            else:
-                self.log("\n! Docker failed to start automatically.")
-                self.log("  Use the 'Start Docker' button on the next page.")
-            
             # Complete install page
             self.install_progress['value'] = 100
             self.status_var.set("Installation complete!")
+            
+            self.log("\n" + "="*50)
+            self.log("FILES INSTALLED SUCCESSFULLY!")
+            self.log("="*50)
+            self.log(f"\nInstalled to: {install_path}")
+            self.log("\nClick 'Next → Setup' to start Docker and configure NPM.")
             
             # Mark installation as complete
             self.installation_complete = True
@@ -783,10 +768,6 @@ Ports:
         # Back button - can go back to review settings
         self.back_btn = ttk.Button(self.nav_frame, text="← Back", command=self.prev_page)
         self.back_btn.pack(side=tk.LEFT, padx=5)
-        
-        # Start Docker button (opens CMD window)
-        ttk.Button(self.nav_frame, text="Start Docker (CMD)", 
-                   command=lambda: self._start_docker_cmd(install_path)).pack(side=tk.LEFT, padx=5)
         
         # Next button to setup page
         self.next_btn = ttk.Button(self.nav_frame, text="Next → Setup", 
