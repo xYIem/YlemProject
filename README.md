@@ -108,7 +108,7 @@ EPG_SERVER_PORT=3101
 Run `scripts/backup-player-data.ps1` daily via Task Scheduler:
 ```powershell
 # In Task Scheduler, create task to run at 3:00 AM
-powershell.exe -ExecutionPolicy Bypass -File C:\ylem\scripts\backup-player-data.ps1
+powershell.exe -ExecutionPolicy Bypass -File .\scripts\backup-player-data.ps1
 ```
 
 ### Critical Files to Backup
