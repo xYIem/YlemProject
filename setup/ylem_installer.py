@@ -717,63 +717,156 @@ Ports:
             self.status_var.set("Installation complete!")
             
             self.log("\n" + "="*50)
-            self.log("🎉 INSTALLATION COMPLETE!")
+            self.log("INSTALLATION COMPLETE!")
             self.log("="*50)
             self.log(f"\nInstalled to: {install_path}")
             self.log(f"\nNext steps:")
-            self.log(f"  1. cd {install_path}")
-            self.log(f"  2. docker-compose up -d")
+            self.log(f"  1. Open a terminal in the install folder")
+            self.log(f"  2. Run: docker-compose up -d")
             self.log(f"  3. Open http://{self.config['host_ip']}:{self.config['npm_admin_port']}")
             self.log(f"  4. Configure proxy host with nginx-advanced.conf")
             
-            # Update button
-            self.next_btn.config(text="Open Folder", 
-                                command=lambda: os.startfile(str(install_path)))
+            # Update buttons on main thread
+            self.root.after(0, self._show_finish_buttons, install_path)
             
         except Exception as e:
-            self.log(f"\n❌ ERROR: {str(e)}")
+            self.log(f"\nERROR: {str(e)}")
             self.status_var.set("Installation failed!")
             messagebox.showerror("Error", f"Installation failed:\n{str(e)}")
     
+    def _show_finish_buttons(self, install_path):
+        """Show finish buttons after installation"""
+        # Clear nav frame and add new buttons
+        for widget in self.nav_frame.winfo_children():
+            widget.destroy()
+        
+        ttk.Button(self.nav_frame, text="Open Install Folder", 
+                   command=lambda: os.startfile(str(install_path))).pack(side=tk.LEFT, padx=5)
+        
+        ttk.Button(self.nav_frame, text="Run Docker Compose", 
+                   command=lambda: self._run_docker(install_path)).pack(side=tk.LEFT, padx=5)
+        
+        ttk.Button(self.nav_frame, text="Finish", 
+                   command=self.root.quit).pack(side=tk.RIGHT, padx=5)
+    
+    def _run_docker(self, install_path):
+        """Run docker-compose up"""
+        try:
+            self.log("\nStarting Docker containers...")
+            result = subprocess.run(
+                ['docker-compose', 'up', '-d'],
+                cwd=str(install_path),
+                capture_output=True,
+                text=True
+            )
+            if result.returncode == 0:
+                self.log("Docker containers started successfully!")
+                self.log(result.stdout)
+            else:
+                self.log(f"Docker error: {result.stderr}")
+        except Exception as e:
+            self.log(f"Failed to start Docker: {str(e)}")
+    
     def download_github_files(self, install_path):
         """Download files from GitHub"""
-        # For now, generate files locally since repo isn't set up yet
-        # In production, this would fetch from GitHub releases
+        import zipfile
+        import io
         
-        self.log("  (Files will be fetched from GitHub releases)")
-        self.log("  For now, generating template files locally...")
+        # GitHub raw URL for the repo
+        base_url = f"https://raw.githubusercontent.com/{GITHUB_USER}/{GITHUB_REPO}/main"
         
-        # Create placeholder index.html
-        index_html = '''<!DOCTYPE html>
-<html>
-<head>
-    <title>Ylem TV</title>
-    <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            background: #1a1a2e; 
-            color: white;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-        }
-        .container { text-align: center; }
-        h1 { font-size: 3em; margin-bottom: 0.5em; }
-        p { color: #888; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>📺 YLEM</h1>
-        <p>Your TV Hub is ready!</p>
-        <p>Configure channels in NPM to get started.</p>
-    </div>
-</body>
-</html>'''
-        (install_path / 'data' / 'index.html').write_text(index_html, encoding='utf-8')
-        self.log("  ✓ index.html")
+        # Files to download based on selected components
+        files_to_download = []
+        
+        # Core files (always needed)
+        files_to_download.extend([
+            ('data/index.html', 'data/index.html'),
+            ('data/watch.html', 'data/watch.html'),
+        ])
+        
+        # TV/EPG files
+        if self.selected_components['tv'].get():
+            files_to_download.extend([
+                ('epg-server/epg-server.js', 'epg-server/epg-server.js'),
+            ])
+        
+        # EPG Guide
+        if self.selected_components['epg'].get():
+            files_to_download.extend([
+                ('web/v2/guide.html', 'web/v2/guide.html'),
+            ])
+        
+        # Game files
+        if self.selected_components['games'].get():
+            files_to_download.extend([
+                ('game-server/server.js', 'game-server/server.js'),
+                ('game-server/package.json', 'game-server/package.json'),
+                ('game-server/shared/index.js', 'game-server/shared/index.js'),
+                ('web/v2/games.html', 'web/v2/games.html'),
+                ('web/v2/games/boggle/boggle.html', 'web/v2/games/boggle/boggle.html'),
+                ('web/v2/games/scrabble/scrabble.html', 'web/v2/games/scrabble/scrabble.html'),
+                ('web/v2/games/scrabble/lobby.html', 'web/v2/games/scrabble/lobby.html'),
+                ('web/v2/css/common.css', 'web/v2/css/common.css'),
+                ('web/v2/css/auth.css', 'web/v2/css/auth.css'),
+                ('web/v2/css/game-common.css', 'web/v2/css/game-common.css'),
+                ('web/v2/css/inventory.css', 'web/v2/css/inventory.css'),
+                ('web/v2/css/leaderboard.css', 'web/v2/css/leaderboard.css'),
+                ('web/v2/css/wager.css', 'web/v2/css/wager.css'),
+                ('web/v2/js/auth.js', 'web/v2/js/auth.js'),
+                ('web/v2/js/config.js', 'web/v2/js/config.js'),
+                ('web/v2/js/dictionary.js', 'web/v2/js/dictionary.js'),
+                ('web/v2/js/inventory.js', 'web/v2/js/inventory.js'),
+                ('web/v2/js/items.js', 'web/v2/js/items.js'),
+                ('web/v2/js/leaderboard.js', 'web/v2/js/leaderboard.js'),
+                ('web/v2/js/wager.js', 'web/v2/js/wager.js'),
+            ])
+        
+        # Diagnostics
+        if self.selected_components['diagnostics'].get():
+            files_to_download.extend([
+                ('diagnostics/collector.py', 'diagnostics/collector.py'),
+                ('diagnostics/requirements.txt', 'diagnostics/requirements.txt'),
+                ('diagnostics/static/dashboard.html', 'diagnostics/static/dashboard.html'),
+            ])
+        
+        # Pi client
+        if self.selected_components['pi_client'].get():
+            files_to_download.extend([
+                ('pi-client/pi_setup.sh', 'pi-client/pi_setup.sh'),
+                ('pi-client/stream_startup.sh', 'pi-client/stream_startup.sh'),
+                ('pi-client/tv_control.py', 'pi-client/tv_control.py'),
+                ('pi-client/pi_reporter.py', 'pi-client/pi_reporter.py'),
+                ('pi-client/boot/config.txt', 'pi-client/boot/config.txt'),
+                ('pi-client/boot/cmdline.txt', 'pi-client/boot/cmdline.txt'),
+            ])
+        
+        # Download each file
+        success_count = 0
+        fail_count = 0
+        
+        for remote_path, local_path in files_to_download:
+            try:
+                url = f"{base_url}/{remote_path}"
+                self.log(f"  Downloading {remote_path}...")
+                
+                req = Request(url, headers={'User-Agent': 'YlemInstaller/1.0'})
+                response = urlopen(req, timeout=30)
+                content = response.read()
+                
+                # Ensure directory exists
+                dest_file = install_path / local_path
+                dest_file.parent.mkdir(parents=True, exist_ok=True)
+                
+                # Write file
+                dest_file.write_bytes(content)
+                self.log(f"    ✓ {local_path}")
+                success_count += 1
+                
+            except Exception as e:
+                self.log(f"    ✗ Failed: {local_path} ({str(e)[:50]})")
+                fail_count += 1
+        
+        self.log(f"\n  Downloaded: {success_count} files, Failed: {fail_count} files")
     
     def generate_env_file(self, install_path):
         """Generate .env file"""
@@ -862,9 +955,7 @@ location = /guide {{
     
     def generate_docker_compose(self, install_path):
         """Generate docker-compose.yml"""
-        compose = f"""version: '3.8'
-
-services:
+        compose = f"""services:
   app:
     image: 'jc21/nginx-proxy-manager:latest'
     container_name: ylem-npm
