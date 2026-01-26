@@ -58,7 +58,9 @@ function generateRandomName() {
 function connectAuthWs() {
     if (authState.ws && authState.ws.readyState === WebSocket.OPEN) return;
     
-    const wsUrl = 'wss://' + window.location.host + '/ws/';
+    // Use ws:// for http, wss:// for https
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+    const wsUrl = wsProtocol + window.location.host + '/ws/';
     
     try {
         authState.ws = new WebSocket(wsUrl);
