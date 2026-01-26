@@ -1200,12 +1200,12 @@ DUCKDNS_TOKEN={self.config['duckdns_token']}
 # Paste into NPM -> Proxy Host -> Advanced
 
 location = / {{
-    root /data;
+    root /data/data;
     try_files /index.html =404;
 }}
 
 location ~ ^/ch\\d+$ {{
-    root /data;
+    root /data/data;
     try_files /watch.html =404;
 }}
 
@@ -1227,12 +1227,12 @@ location /ws/ {{
 }}
 
 location /v2/ {{
-    root /data;
+    root /data/data;
     try_files $uri $uri/ =404;
 }}
 
 location = /games {{
-    root /data;
+    root /data/data;
     try_files /v2/games.html =404;
 }}
 """
@@ -1245,7 +1245,7 @@ location ^~ /api/epg {{
 }}
 
 location = /guide {{
-    root /data;
+    root /data/data;
     try_files /v2/guide.html =404;
 }}
 """
