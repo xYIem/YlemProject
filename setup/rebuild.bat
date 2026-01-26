@@ -17,11 +17,25 @@ docker rm ylem-npm ylem-epg-server ylem-game-server 2>nul
 :: Navigate to repo root
 cd /d "%~dp0.."
 
+:: Prompt for commit message
+echo.
+echo ========================================
+echo   What changed in this update?
+echo ========================================
+echo.
+set /p COMMIT_MSG="Commit message: "
+
+:: Check if message was provided
+if "%COMMIT_MSG%"=="" (
+    set COMMIT_MSG=Update installer
+)
+
 :: Git add, commit, push
 echo.
-echo Committing and pushing to GitHub...
+echo Committing: %COMMIT_MSG%
+echo.
 git add .
-git commit -m "Update installer"
+git commit -m "%COMMIT_MSG%"
 git push
 
 :: Build the exe
@@ -35,6 +49,7 @@ echo ========================================
 echo   Build Complete!
 echo ========================================
 echo.
+echo Commit: %COMMIT_MSG%
 echo EXE location: %~dp0dist\YlemSetup.exe
 echo.
 pause
