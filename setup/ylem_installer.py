@@ -696,7 +696,9 @@ Ports:
             
             dirs = ['data', 'data/Images', 'setup/templates', 'scripts']
             if self.selected_components['games'].get():
-                dirs.extend(['game-server', 'game-server/shared', 'web/v2/css', 'web/v2/js', 'web/v2/games', 'web/v2/games/boggle', 'web/v2/games/scrabble'])
+                dirs.extend(['game-server', 'game-server/shared', 'data/v2/css', 'data/v2/js', 'data/v2/games', 'data/v2/games/boggle', 'data/v2/games/scrabble'])
+            if self.selected_components['epg'].get():
+                dirs.extend(['data/v2'])
             if self.selected_components['tv'].get():
                 dirs.extend(['epg-server', 'epg-server/logos'])
             if self.selected_components['diagnostics'].get():
@@ -853,31 +855,58 @@ pause >nul
         npm_frame = ttk.LabelFrame(frame, text="Configure Nginx Proxy Manager", padding="10")
         npm_frame.pack(fill=tk.X, pady=5)
         
-        ttk.Label(npm_frame, text="1. Click 'Open NPM Admin' below\n"
-                  "2. Login with: admin@example.com / changeme\n"
-                  "3. Add a Proxy Host:\n"
-                  f"     Domain: {self.config['domain'] or self.config['host_ip']}\n"
-                  f"     Forward: {self.config['host_ip']}:{self.config['npm_http_port']}\n"
-                  "4. Click 'Copy Nginx Config' and paste in the Advanced tab",
-                  justify=tk.LEFT).pack(anchor='w')
+        # Use Text widget for selectable content
+        npm_info = f"""1. Open NPM Admin (button below)
+2. Login: admin@example.com / changeme
+3. Add Proxy Host with these settings:"""
+        
+        ttk.Label(npm_frame, text=npm_info, justify=tk.LEFT).pack(anchor='w')
+        
+        # Selectable fields
+        fields_frame = ttk.Frame(npm_frame)
+        fields_frame.pack(fill=tk.X, pady=5)
+        
+        # Domain/IP field
+        ttk.Label(fields_frame, text="Domain Names:").grid(row=0, column=0, sticky='e', padx=5, pady=2)
+        domain_entry = ttk.Entry(fields_frame, width=40)
+        domain_entry.insert(0, self.config['domain'] or self.config['host_ip'])
+        domain_entry.config(state='readonly')
+        domain_entry.grid(row=0, column=1, sticky='w', pady=2)
+        
+        # Forward IP field
+        ttk.Label(fields_frame, text="Forward Hostname:").grid(row=1, column=0, sticky='e', padx=5, pady=2)
+        forward_entry = ttk.Entry(fields_frame, width=40)
+        forward_entry.insert(0, self.config['host_ip'])
+        forward_entry.config(state='readonly')
+        forward_entry.grid(row=1, column=1, sticky='w', pady=2)
+        
+        # Forward Port field
+        ttk.Label(fields_frame, text="Forward Port:").grid(row=2, column=0, sticky='e', padx=5, pady=2)
+        port_entry = ttk.Entry(fields_frame, width=40)
+        port_entry.insert(0, self.config['npm_http_port'])
+        port_entry.config(state='readonly')
+        port_entry.grid(row=2, column=1, sticky='w', pady=2)
+        
+        ttk.Label(npm_frame, text="4. Click 'Show Nginx Config' and paste in the Advanced tab", 
+                  justify=tk.LEFT).pack(anchor='w', pady=(5, 0))
         
         btn_row1 = ttk.Frame(npm_frame)
         btn_row1.pack(fill=tk.X, pady=(10, 0))
         
         ttk.Button(btn_row1, text="Open NPM Admin", 
                    command=lambda: self.open_url(f"http://{self.config['host_ip']}:{self.config['npm_admin_port']}")).pack(side=tk.LEFT, padx=5)
-        ttk.Button(btn_row1, text="Copy Nginx Config", 
-                   command=self._copy_nginx_config_from_setup).pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_row1, text="Show Nginx Config", 
+                   command=self._show_nginx_config_window).pack(side=tk.LEFT, padx=5)
         
         # Your Links Section  
-        links_frame = ttk.LabelFrame(frame, text="Your Ylem Sites (clickable)", padding="10")
-        links_frame.pack(fill=tk.X, pady=10)
+        links_frame = ttk.LabelFrame(frame, text="Your Ylem Sites (click to open, select to copy)", padding="10")
+        links_frame.pack(fill=tk.X, pady=5)
         
         base_url = f"http://{self.config['domain'] or self.config['host_ip']}"
         if self.config['npm_http_port'] != '80':
             base_url += f":{self.config['npm_http_port']}"
         
-        # Create clickable links
+        # Create selectable links
         links = [
             ("Main Page", f"{base_url}/"),
         ]
@@ -894,9 +923,16 @@ pause >nul
             link_row.pack(fill=tk.X, pady=2)
             
             ttk.Label(link_row, text=f"{name}:", width=12, anchor='e').pack(side=tk.LEFT)
-            link_label = ttk.Label(link_row, text=url, foreground='blue', cursor='hand2')
-            link_label.pack(side=tk.LEFT, padx=5)
-            link_label.bind('<Button-1>', lambda e, u=url: self.open_url(u))
+            
+            # Selectable entry for URL
+            url_entry = ttk.Entry(link_row, width=45)
+            url_entry.insert(0, url)
+            url_entry.config(state='readonly')
+            url_entry.pack(side=tk.LEFT, padx=5)
+            
+            # Open button
+            ttk.Button(link_row, text="Open", width=6,
+                       command=lambda u=url: self.open_url(u)).pack(side=tk.LEFT, padx=2)
         
         # Install folder
         folder_frame = ttk.LabelFrame(frame, text="Installation Location", padding="10")
@@ -905,13 +941,67 @@ pause >nul
         folder_row = ttk.Frame(folder_frame)
         folder_row.pack(fill=tk.X)
         
-        ttk.Label(folder_row, text=str(self.config['install_path'])).pack(side=tk.LEFT)
+        folder_entry = ttk.Entry(folder_row, width=50)
+        folder_entry.insert(0, str(self.config['install_path']))
+        folder_entry.config(state='readonly')
+        folder_entry.pack(side=tk.LEFT)
         ttk.Button(folder_row, text="Open Folder", 
                    command=lambda: os.startfile(str(self.config['install_path']))).pack(side=tk.LEFT, padx=10)
         
         # Update nav buttons
         self.back_btn.config(state=tk.DISABLED)
         self.next_btn.config(text="Finish", command=self.root.quit)
+    
+    def _show_nginx_config_window(self):
+        """Show nginx config in a popup window for easy copying"""
+        try:
+            install_path = Path(self.config['install_path'])
+            config_path = install_path / 'setup' / 'templates' / 'nginx-advanced.conf'
+            config_text = config_path.read_text(encoding='utf-8')
+            
+            # Create popup window
+            popup = tk.Toplevel(self.root)
+            popup.title("Nginx Advanced Config")
+            popup.geometry("650x500")
+            popup.transient(self.root)
+            
+            ttk.Label(popup, text="Copy this config and paste into NPM → Proxy Host → Advanced tab",
+                      font=('Segoe UI', 10)).pack(pady=10)
+            
+            # Text widget with config
+            text_frame = ttk.Frame(popup)
+            text_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=5)
+            
+            text_widget = tk.Text(text_frame, wrap=tk.NONE, font=('Consolas', 10))
+            text_widget.insert('1.0', config_text)
+            
+            # Scrollbars
+            y_scroll = ttk.Scrollbar(text_frame, orient=tk.VERTICAL, command=text_widget.yview)
+            x_scroll = ttk.Scrollbar(text_frame, orient=tk.HORIZONTAL, command=text_widget.xview)
+            text_widget.config(yscrollcommand=y_scroll.set, xscrollcommand=x_scroll.set)
+            
+            y_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+            x_scroll.pack(side=tk.BOTTOM, fill=tk.X)
+            text_widget.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            
+            # Select all for easy copying
+            text_widget.tag_add('sel', '1.0', 'end')
+            text_widget.focus_set()
+            
+            # Buttons
+            btn_frame = ttk.Frame(popup)
+            btn_frame.pack(pady=10)
+            
+            def copy_to_clipboard():
+                popup.clipboard_clear()
+                popup.clipboard_append(config_text)
+                messagebox.showinfo("Copied!", "Config copied to clipboard!", parent=popup)
+            
+            ttk.Button(btn_frame, text="Copy to Clipboard", command=copy_to_clipboard).pack(side=tk.LEFT, padx=5)
+            ttk.Button(btn_frame, text="Close", command=popup.destroy).pack(side=tk.LEFT, padx=5)
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to load config: {str(e)}")
     
     def _stop_docker_cmd(self, install_path):
         """Stop docker-compose in a visible CMD window"""
@@ -1002,7 +1092,7 @@ pause
         # EPG Guide
         if self.selected_components['epg'].get():
             files_to_download.extend([
-                ('web/v2/guide.html', 'web/v2/guide.html'),
+                ('web/v2/guide.html', 'data/v2/guide.html'),
             ])
         
         # Game files
@@ -1011,23 +1101,23 @@ pause
                 ('game-server/server.js', 'game-server/server.js'),
                 ('game-server/package.json', 'game-server/package.json'),
                 ('game-server/shared/index.js', 'game-server/shared/index.js'),
-                ('web/v2/games.html', 'web/v2/games.html'),
-                ('web/v2/games/boggle/boggle.html', 'web/v2/games/boggle/boggle.html'),
-                ('web/v2/games/scrabble/scrabble.html', 'web/v2/games/scrabble/scrabble.html'),
-                ('web/v2/games/scrabble/lobby.html', 'web/v2/games/scrabble/lobby.html'),
-                ('web/v2/css/common.css', 'web/v2/css/common.css'),
-                ('web/v2/css/auth.css', 'web/v2/css/auth.css'),
-                ('web/v2/css/game-common.css', 'web/v2/css/game-common.css'),
-                ('web/v2/css/inventory.css', 'web/v2/css/inventory.css'),
-                ('web/v2/css/leaderboard.css', 'web/v2/css/leaderboard.css'),
-                ('web/v2/css/wager.css', 'web/v2/css/wager.css'),
-                ('web/v2/js/auth.js', 'web/v2/js/auth.js'),
-                ('web/v2/js/config.js', 'web/v2/js/config.js'),
-                ('web/v2/js/dictionary.js', 'web/v2/js/dictionary.js'),
-                ('web/v2/js/inventory.js', 'web/v2/js/inventory.js'),
-                ('web/v2/js/items.js', 'web/v2/js/items.js'),
-                ('web/v2/js/leaderboard.js', 'web/v2/js/leaderboard.js'),
-                ('web/v2/js/wager.js', 'web/v2/js/wager.js'),
+                ('web/v2/games.html', 'data/v2/games.html'),
+                ('web/v2/games/boggle/boggle.html', 'data/v2/games/boggle/boggle.html'),
+                ('web/v2/games/scrabble/scrabble.html', 'data/v2/games/scrabble/scrabble.html'),
+                ('web/v2/games/scrabble/lobby.html', 'data/v2/games/scrabble/lobby.html'),
+                ('web/v2/css/common.css', 'data/v2/css/common.css'),
+                ('web/v2/css/auth.css', 'data/v2/css/auth.css'),
+                ('web/v2/css/game-common.css', 'data/v2/css/game-common.css'),
+                ('web/v2/css/inventory.css', 'data/v2/css/inventory.css'),
+                ('web/v2/css/leaderboard.css', 'data/v2/css/leaderboard.css'),
+                ('web/v2/css/wager.css', 'data/v2/css/wager.css'),
+                ('web/v2/js/auth.js', 'data/v2/js/auth.js'),
+                ('web/v2/js/config.js', 'data/v2/js/config.js'),
+                ('web/v2/js/dictionary.js', 'data/v2/js/dictionary.js'),
+                ('web/v2/js/inventory.js', 'data/v2/js/inventory.js'),
+                ('web/v2/js/items.js', 'data/v2/js/items.js'),
+                ('web/v2/js/leaderboard.js', 'data/v2/js/leaderboard.js'),
+                ('web/v2/js/wager.js', 'data/v2/js/wager.js'),
             ])
         
         # Diagnostics
