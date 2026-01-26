@@ -102,9 +102,9 @@ class YlemInstaller:
     def __init__(self, root):
         self.root = root
         self.root.title(f"Ylem Installer v{VERSION}")
-        self.root.geometry("750x650")
+        self.root.geometry("750x720")
         self.root.resizable(True, True)
-        self.root.minsize(700, 600)
+        self.root.minsize(700, 680)
         
         # Try to set icon if available
         try:
@@ -139,7 +139,7 @@ class YlemInstaller:
             'pi_default_channel': '',
             'backup_enabled': True,
             'backup_path': '',
-            'install_path': 'C:\\Ylem',
+            'install_path': '',  # Empty - user must set
         }
         
         # Selected components
@@ -288,7 +288,12 @@ class YlemInstaller:
     
     def validate_page(self):
         """Validate current page before proceeding"""
-        if self.current_page == 1:  # Network page (now includes ports and domain)
+        if self.current_page == 0:  # Components page
+            if not self.install_path_var.get().strip():
+                messagebox.showerror("Error", "Please select an installation folder")
+                return False
+            self.config['install_path'] = self.install_path_var.get().strip()
+        elif self.current_page == 1:  # Network page (now includes ports and domain)
             if not self.host_ip_var.get():
                 messagebox.showerror("Error", "Please enter your local IP address")
                 return False
@@ -335,12 +340,19 @@ class YlemInstaller:
                       foreground='gray').pack(side=tk.LEFT)
         
         # Install path
-        path_frame = ttk.LabelFrame(frame, text="Installation Path", padding="10")
+        path_frame = ttk.LabelFrame(frame, text="Installation Path (Required)", padding="10")
         path_frame.pack(fill=tk.X, pady=(10, 5))
         
+        path_row = ttk.Frame(path_frame)
+        path_row.pack(fill=tk.X)
+        
         self.install_path_var = tk.StringVar(value=self.config['install_path'])
-        ttk.Entry(path_frame, textvariable=self.install_path_var, width=50).pack(side=tk.LEFT, padx=(0, 10))
-        ttk.Button(path_frame, text="Browse...", command=self.browse_install_path).pack(side=tk.LEFT)
+        path_entry = ttk.Entry(path_row, textvariable=self.install_path_var, width=50)
+        path_entry.pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Button(path_row, text="Browse...", command=self.browse_install_path).pack(side=tk.LEFT)
+        
+        ttk.Label(path_frame, text="Example: C:\\Ylem or D:\\MyServer\\Ylem", 
+                  foreground='gray').pack(anchor='w', pady=(5, 0))
         
         # Prerequisites with status checks
         prereq_frame = ttk.LabelFrame(frame, text="Prerequisites", padding="10")
